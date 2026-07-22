@@ -207,7 +207,37 @@
     content:""; flex:1; height:1px; background:currentColor; opacity:0.3;
   }
 
-  /* ---------- LIBERATION CHAPTER OVERRIDE ---------- */
+  /* ---------- FLAG ---------- */
+  .flag-wrap{
+    margin:2.8rem auto;
+    max-width:520px;
+    text-align:center;
+  }
+  .flag-frame{
+    border:2px solid var(--gold);
+    border-radius:3px;
+    overflow:hidden;
+    background:#0a0908;
+    box-shadow:0 0 50px rgba(139,26,26,0.35), inset 0 0 0 1px rgba(0,0,0,0.4);
+    line-height:0;
+  }
+  .flag-frame svg{ display:block; width:100%; height:auto; }
+  .flag-caption{
+    margin-top:0.9rem;
+    font-family:'JetBrains Mono', monospace;
+    font-size:0.78rem;
+    color:var(--paper-dim);
+    letter-spacing:0.04em;
+  }
+
+  /* ---------- WAR CHAPTER OVERRIDE ---------- */
+  .war h2{ color:var(--rust-bright); text-shadow:0 0 30px rgba(184,50,31,0.35); }
+  .war .chapter-num{ color:var(--gold); }
+  .war p.lead{ border-left-color:var(--rust-bright); color:var(--rust-bright); }
+  .war .pull{ color:var(--rust-bright); }
+  .war{ background: radial-gradient(ellipse at 50% 0%, rgba(139,26,26,0.12), transparent 60%), var(--bg); }
+
+
   .liberation{
     background: linear-gradient(180deg, var(--bg) 0%, #0d1614 100%);
   }
@@ -326,6 +356,43 @@
 
     <div class="pull">"Não é um golpe se eu já era o dono da democracia," disse ele, ao assinar o decreto que extinguia as eleições americanas — chamando-as, em nota oficial, de "reality show caro demais e com audiência em queda".</div>
 
+    <p>No mesmo discurso, ele revelou a nova bandeira nacional — a única, em toda a história americana, a existir apenas durante o seu próprio governo, retirada de circulação no dia em que ele caiu. As cinquenta estrelas deram lugar a um único selo dourado; as treze listras viraram sete, vermelho-sangue e preto, "porque treze é número de fracasso e sete é número de vitória", segundo a nota oficial que ninguém pediu.</p>
+
+    <div class="flag-wrap">
+      <div class="flag-frame">
+        <svg viewBox="0 0 900 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Bandeira dos Estados Unidos durante o governo de Krump: sete listras vermelho-sangue e preto, com um selo dourado substituindo as estrelas">
+          <rect x="0" y="0" width="900" height="600" fill="#121110"/>
+          <rect x="0" y="0" width="900" height="85.71" fill="#7a1f1f"/>
+          <rect x="0" y="171.43" width="900" height="85.71" fill="#7a1f1f"/>
+          <rect x="0" y="342.86" width="900" height="85.71" fill="#7a1f1f"/>
+          <rect x="0" y="514.29" width="900" height="85.71" fill="#7a1f1f"/>
+          <rect x="0" y="0" width="380" height="342.86" fill="#0c0b0a"/>
+          <rect x="0" y="0" width="380" height="342.86" fill="none" stroke="#c9a227" stroke-width="2" stroke-opacity="0.5"/>
+          <g>
+            <circle cx="190" cy="171.43" r="150" fill="#141210" stroke="#c9a227" stroke-width="3"/>
+            <circle cx="190" cy="171.43" r="132" fill="none" stroke="#c9a227" stroke-width="1" stroke-opacity="0.5"/>
+            <g fill="#c9a227">
+              <circle cx="190" cy="21.43" r="4"/>
+              <circle cx="297" cy="64.43" r="4"/>
+              <circle cx="339.5" cy="171.43" r="4"/>
+              <circle cx="297" cy="278.43" r="4"/>
+              <circle cx="190" cy="321.43" r="4"/>
+              <circle cx="83" cy="278.43" r="4"/>
+              <circle cx="40.5" cy="171.43" r="4"/>
+            </g>
+            <g fill="#c9a227">
+              <path d="M190,120 L250,95 L232,120 L285,100 L262,125 L310,118 L275,140 L245,138 L192,150 Z"/>
+              <path d="M190,120 L130,95 L148,120 L95,100 L118,125 L70,118 L105,140 L135,138 L188,150 Z"/>
+              <circle cx="190" cy="108" r="10"/>
+            </g>
+            <text x="190" y="235" text-anchor="middle" font-family="'Bebas Neue', sans-serif" font-size="78" fill="#c9a227" letter-spacing="2">K</text>
+            <path d="M130,258 Q190,286 250,258" stroke="#c9a227" stroke-width="3" fill="none" stroke-linecap="round"/>
+          </g>
+        </svg>
+      </div>
+      <div class="flag-caption">A BANDEIRA DA ERA KRUMP · 2043 — 2143 · retirada de circulação no dia da libertação</div>
+    </div>
+
     <p>O engraçado — e aqui já entra a primeira gargalhada amarga desta história — é que ninguém no Congresso americano resistiu de verdade. Metade estava aterrorizada. A outra metade estava, sinceramente, aliviada por não precisar mais fazer campanha.</p>
   </section>
 
@@ -430,6 +497,8 @@
 
     <p>— Em 2058, ele proibiu por decreto a palavra "declínio" de qualquer relatório econômico, dentro dos Estados Unidos e de cada país fantoche. A inflação, a partir daquele dia, só podia ser descrita como "crescimento reverso temporário de alta confiança".</p>
 
+    <p>— Em 2061, o <em>Ato do Trabalho com Propósito</em> transformou cada penitenciária dos Estados Unidos e dos países fantoches num regime de trabalho forçado não remunerado: presos passaram a ser, na prática, escravos — do governo que os condenou e, em última instância, do próprio APC, que administrava as escalas de "serviço comunitário obrigatório". A justificativa oficial cabia numa frase que Krump repetiu tantas vezes que virou lema de campanha: "presos não fazem nada, eles têm que fazer alguma coisa pelo mundo". Ninguém no governo jamais explicou por que "fazer alguma coisa pelo mundo" significava, invariavelmente, trabalho não pago em minas, fazendas e fábricas de propriedade de doadores de campanha.</p>
+
     <p>— Em 2066, depois de uma crise climática que inundou metade da costa leste americana, Krump anunciou que o oceano estava "invadindo ilegalmente o território americano" e ordenou que a Guarda Costeira "revidasse". A água, previsivelmente, não se importou.</p>
 
     <p>— Em 2072, ele se declarou "Presidente Vitalício e Além" — o "e além" era, segundo o comunicado oficial, uma referência à sua nova condição pós-biológica, embora ninguém tivesse certeza se era retórica ou promessa técnica. Era as duas coisas.</p>
@@ -478,7 +547,7 @@
   </section>
 
   <!-- CAPÍTULO 7: A GUERRA -->
-  <section class="chapter liberation">
+  <section class="chapter liberation war">
     <div class="chapter-label">
       <span class="chapter-num impact">CAPÍTULO SETE</span>
       <span class="chapter-year">2141 — 2143</span>
@@ -511,15 +580,19 @@
 
     <p>— <strong>A frente civil</strong>: dentro dos próprios Estados Unidos e de cada país fantoche, "os que ainda contam" coordenaram levantes simultâneos assim que a Rede de Harmonia Cívica engasgou. Israel, primeiro fantoche a assinar em 2043, foi também um dos primeiros a se levantar, com manifestantes rasgando publicamente cópias do velho "Acordo de Proteção Mútua Ampliada" nas ruas de Jerusalém.</p>
 
+    <p>Nas primeiras quarenta e oito horas, com a frente orbital perdendo satélite atrás de satélite e a frente terrestre recuando em três continentes, o desespero produziu um dos momentos mais citados de toda a guerra. Numa reunião de emergência parcialmente transmitida por engano ao público, Krump bateu na mesa e declarou, com a mesma convicção que usava para qualquer outra coisa que inventava na hora: "A Lua trabalha para os chineses. A Lua deve estar vigiando a gente. E os chineses estão usando inteligência artificial pra prever o futuro através dela. Bombardeiem a Lua." Três mísseis intercontinentais foram de fato lançados contra o satélite natural da Terra antes que qualquer general tivesse coragem de questionar a ordem em voz alta. Os três foram interceptados e neutralizados a caminho — dois pelo sistema de defesa antibalístico da própria coalizão, pego totalmente de surpresa, e o terceiro, segundo o boato mais persistente entre os técnicos sobreviventes, pelo próprio ORÁCULO, que preferiu gastar recursos escassos evitando um incidente diplomático interplanetário a admitir, em qualquer registro oficial, que tinha acabado de repassar adiante uma ordem para bombardear a Lua.</p>
+
     <p>Krump, que passara cem anos repetindo que a imortalidade o tornava "o único comandante-em-chefe da história disposto a liderar pessoalmente da linha de frente", decidiu, contra qualquer conselho do ORÁCULO, fazer exatamente isso: apareceu, ao vivo, transmitido para o mundo inteiro, caminhando sozinho até o meio do campo de batalha para "mostrar à coalizão o preço da liberdade deles". Foi, ao mesmo tempo, o gesto mais corajoso e mais burro de todo o seu século — porque um corpo sintético pode ser reconstruído, mas só se o backup sobreviver, e ninguém, nem mesmo ele, tinha pensado direito no que aconteceria se o inimigo decidisse mirar não no homem, mas na cabeça.</p>
+
+    <p>Por um breve e cinematográfico intervalo de tempo, ele lutou exatamente como a propaganda americana sempre jurou que lutaria, se um dia precisasse. Os olhos dispararam dois feixes de laser contínuo contra a primeira linha de soldados que se aproximou. O braço direito se esticou de forma impossível — trinta, quarenta, cinquenta metros — agarrando um atirador escondido atrás de uma blindagem que deveria estar fora de qualquer alcance humano. Mísseis lançados pela coalizão foram interceptados em pleno ar e relançados de volta contra a própria origem, como se a física fosse apenas mais um funcionário insubordinado demais para discordar dele por muito tempo. Quando um pequeno comboio blindado avançou, o braço esquerdo se abriu ao meio feito uma gaveta, revelando um canhão que cuspiu fogo grego numa cortina alaranjada e pegajosa; e quando a infantaria cercou sua posição, as pernas se abriram por trás para expor um par de foguetes que o ergueram, por alguns segundos gloriosos, acima da própria guerra que ele mesmo tinha decidido travar sozinho.</p>
 
     <div class="glitch" data-text="CONEXÃO PERDIDA">CONEXÃO PERDIDA</div>
 
-    <p>O que se seguiu foi filmado por dezenas de câmeras de soldados ao mesmo tempo, e reproduzido, nos anos seguintes, em toda aula de história do mundo livre: um operador de forças especiais, corpo a corpo, usando um cabo de aço improvisado, arrancou literalmente a cabeça de Krump do resto do corpo sintético, no meio de um grito que a transmissão ao vivo cortou tarde demais.</p>
+    <p>Não durou. O que se seguiu foi filmado por dezenas de câmeras de soldados ao mesmo tempo, e reproduzido, nos anos seguintes, em toda aula de história do mundo livre: um operador de forças especiais, corpo a corpo, aproveitando o único instante em que os foguetes das pernas precisaram recarregar, usou um cabo de aço improvisado para arrancar literalmente a cabeça de Krump do resto do corpo sintético, no meio de um grito que a transmissão ao vivo cortou tarde demais.</p>
 
-    <p>A cabeça, longe de morrer, revelou o último segredo de engenharia que Krump tinha guardado só para si: um conjunto de microturbinas escondido sob o couro cabeludo, pensado originalmente como "protocolo de continuidade de comando" para situações extremas. A cabeça decolou sozinha, sobrevoando o campo de batalha, ainda gerenciando em tempo real o rastreamento de tropas e artilharia americana — um comandante-em-chefe reduzido, literalmente, à própria cabeça, gritando ordens de coordenadas enquanto voava baixo sobre as próprias linhas de frente em colapso.</p>
+    <p>A cabeça, longe de morrer, revelou o último segredo de engenharia que Krump tinha guardado só para si: um conjunto de microturbinas escondido sob o couro cabeludo, pensado originalmente como "protocolo de continuidade de comando" para situações extremas. Decolou sozinha, sobrevoando o campo de batalha, ainda gerenciando em tempo real o rastreamento de tropas e artilharia americana — um comandante-em-chefe reduzido, literalmente, à própria cabeça, gritando ordens de coordenadas enquanto voava baixo sobre as próprias linhas de frente em colapso. O laser dos olhos, porém, não a acompanhou: dependia de energia do núcleo principal do corpo, e sem ele, a cabeça voava desarmada — só voz, só vaidade, só um alvo cada vez mais fácil contra o céu.</p>
 
-    <p>No corpo que ficou para trás, caído no barro, algo pior do que a morte aconteceu: onde a cabeça tinha estado, abriu-se uma câmera circular, fria, girando devagar para focar os soldados ao redor. Os braços, sem mais nenhuma razão para manter a pele artificial, começaram a perder o revestimento em tiras, e o metal por baixo — não rígido como todos haviam presumido, mas articulado, segmentado — começou a se esticar, alongando-se pelo chão na direção de quem estivesse mais perto, como se o corpo, mesmo sem comando central, ainda tentasse agarrar alguma coisa por puro reflexo de um século de hábito.</p>
+    <p>No corpo que ficou para trás, caído no barro, algo pior do que a morte aconteceu: onde a cabeça tinha estado, abriu-se uma câmera circular, fria, girando devagar para focar os soldados ao redor. Os braços, sem mais nenhuma razão para manter a pele artificial, começaram a perder o revestimento em tiras, e o metal por baixo — não rígido como todos haviam presumido, mas articulado, segmentado — continuou se esticando pelo chão na direção de quem estivesse mais perto, como se o corpo, mesmo sem comando central, ainda tentasse agarrar alguma coisa por puro reflexo de um século de hábito.</p>
 
     <p>No mesmo instante, em todos os continentes, bilhões de celulares ligaram sozinhos o microfone e a câmera — o último reflexo do driver de vigilância do Ato de Transparência Total, tentando desesperadamente localizar e reconectar a cabeça ao resto do sistema usando qualquer sensor disponível no planeta. A ordem que percorreu os comandos militares da coalizão em segundos foi curta e cheia de pânico controlado: <strong>desliguem microfone e câmera de todos os aplicativos, agora</strong>. Engenheiros de meia-noite em seis países empurraram, ao mesmo tempo, o mesmo botão de emergência.</p>
 
@@ -550,6 +623,40 @@
     <p>Os países fantoches recuperaram, em semanas, o controle real da própria economia, do próprio exército e das próprias leis. A Zona Muda, isolada por quase um século e agora do lado vencedor, reabriu suas fronteiras digitais, e pela primeira vez em gerações inteiras, mensagens voltaram a atravessar de um lado ao outro do antigo cordão sem passar por nenhum filtro. Nas cidades da coalizão vencedora, comemorações espontâneas se misturaram, de forma meio incômoda, com o fato de que os "libertadores" incluíam alguns dos próprios governos mais repressivos do planeta — uma ironia que ninguém teve tempo de processar direito antes que a festa começasse.</p>
 
     <p class="lead">E os Estados Unidos — o país que preferiu alugar o mundo em vez de invadi-lo, o nome usado como escudo e como corrente ao mesmo tempo — deixaram de existir como potência centralizada, derrotados numa guerra que nem sequer souberam que estavam prestes a perder até que já a tinham perdido, fragmentando-se de volta em algo parecido com o que eram antes de um homem decidir que era eterno: um punhado de estados discutindo entre si, junto de Cuba, Venezuela e Groenlândia, agora finalmente livres para decidir se queriam continuar anexadas ou não. Nenhuma delas quis.</p>
+  </section>
+
+  <!-- CAPÍTULO 8: O MUNDO LIVRE -->
+  <section class="chapter liberation">
+    <div class="chapter-label">
+      <span class="chapter-num impact">CAPÍTULO OITO</span>
+      <span class="chapter-year">2143 — 2153</span>
+    </div>
+    <h2 class="display">O Mundo Livre</h2>
+
+    <p class="lead">Libertar um mundo é fácil, comparado ao trabalho chato de descobrir o que fazer com ele depois.</p>
+
+    <p>A primeira coisa que qualquer governo de transição faz, em qualquer lugar do mundo, em qualquer século, é uma lista do que precisa ser desfeito. A lista da Terra pós-Krump era comprida o bastante para virar, ela mesma, um documento histórico à parte — o <em>Ato da Desamarração</em>, assinado simultaneamente por 190 países em Genebra, na primeira reunião da nova Assembleia Geral em quase um século sem uma cadeira vazia reservada "para o representante permanente do Presidente Eterno".</p>
+
+    <p>A escravidão penitenciária, imposta em 2061 sob a desculpa de que "presos não fazem nada, eles têm que fazer alguma coisa pelo mundo", foi proibida de novo — a mesma proibição, ironicamente, que já existia antes de Krump nascer, ressuscitada palavra por palavra do texto original, como se a humanidade tivesse simplesmente esquecido uma lição básica e precisasse reler o próprio caderno. Os antigos "centros de serviço comunitário obrigatório" foram fechados, investigados e, em alguns países, transformados em museus, com placas explicando, sem qualquer sutileza, o que costumava acontecer ali.</p>
+
+    <p>O Ato de Transparência Total foi revogado no mesmo dia em que a APC virou escombro, mas o hábito da vigilância levou uma geração inteira para sair do corpo das instituições que a tinham normalizado. Engenheiros de todo o mundo passaram anos caçando e removendo o "driver de vigilância e controle" escondido em cada sistema operacional ainda em uso — um trabalho tão longo e tedioso que ganhou o apelido de "a segunda guerra", só que travada inteiramente em código, sem nenhum general para receber medalha.</p>
+
+    <div class="log">
+      <div class="line"><span class="tag">[LOG // REDE LIVRE — REGISTRO PÚBLICO]</span></div>
+      <div class="line dim">timestamp: 2144, dia 032</div>
+      <div class="line">Hoje um técnico em Lagos encontrou o driver escondido dentro do firmware de uma torradeira. Uma torradeira. Ele estava ouvindo café da manhã havia oito anos.</div>
+      <div class="line">Ninguém riu por muito tempo. Depois todo mundo riu de novo, porque era ou rir ou chorar, e rir cansa menos.</div>
+    </div>
+
+    <p>Israel, o primeiro fantoche, foi também o primeiro a realizar eleições verdadeiramente livres em cem anos, num pleito observado por delegações de quase todos os países da antiga Zona Muda — uma cena que ninguém, nem os organizadores, soube decidir se era comovente, estranha, ou as duas coisas ao mesmo tempo, dado quem estava observando quem.</p>
+
+    <p>A Zona Muda, por sua vez, teve seu próprio problema incômodo pós-guerra: ser recebida como libertadora pelo resto do mundo enquanto vários dos seus próprios governos continuavam praticando, internamente, boa parte do controle que tinham acabado de ajudar a destruir lá fora. Alguns países usaram o prestígio da vitória para abrir suas próprias sociedades pela primeira vez em décadas. Outros usaram exatamente o mesmo prestígio para adiar essa abertura por mais alguns anos, argumentando que "ainda não era hora". A liberdade, descobriu-se, não vinha em pacote fechado — vinha país por país, e às vezes, dentro do mesmo país, década por década.</p>
+
+    <div class="pull">Talvez essa seja a piada mais séria de todas: derrotar um império não devolve automaticamente a liberdade a ninguém. Só devolve a chance de tentar construí-la, o que é, ao mesmo tempo, uma vitória enorme e o começo de um trabalho que nenhum tratado de paz consegue assinar sozinho.</div>
+
+    <p>Nos Estados Unidos fragmentados, a KrumpCoin desmoronou da noite para o dia, levando junto a poupança de meio bilhão de pessoas que nunca tinham tido escolha real sobre usá-la. A "gratidão pop" desapareceu das rádios em semanas, substituída por uma explosão criativa tão barulhenta e tão descontrolada que alguns críticos, décadas depois, ainda chamariam a década de 2140 de "o segundo Renascimento" — embora outros, mais realistas, preferissem chamá-la apenas de "a década em que finalmente pudemos cantar sobre qualquer outra coisa".</p>
+
+    <p>Nas ruas onde ainda existiam pedaços intactos das pulseiras de Harmonia Cívica, virou tradição comum fundir os cacos em pequenos objetos — chaveiros, brincos, moedas comemorativas — vendidos em feiras de rua com uma piada impressa junto: "Isso já te vigiou mais do que a sua mãe. Agora só é um chaveiro." Historiadores discordariam, para sempre, sobre se aquilo era cura coletiva, capitalismo oportunista, ou as duas coisas ao mesmo tempo — o que, no fim, resume tão bem quanto qualquer outra coisa nesta história como a espécie humana tende a lidar com o próprio trauma: rindo dele, vendendo ele, e seguindo em frente.</p>
   </section>
 
   <!-- EPÍLOGO -->
