@@ -106,7 +106,59 @@
   }
   @keyframes bob{ 0%,100%{transform:translateY(0);} 50%{transform:translateY(8px);} }
 
-  /* ---------- LAYOUT ---------- */
+  /* ---------- TOC ---------- */
+  .toc-wrap{
+    max-width:760px;
+    margin:0 auto;
+    padding:5vh 6vw 2vh;
+  }
+  .toc-title{
+    font-family:'Bebas Neue', sans-serif;
+    letter-spacing:0.25em;
+    font-size:0.85rem;
+    color:var(--gold);
+    text-align:center;
+    margin-bottom:1.6rem;
+  }
+  .toc-list{
+    list-style:none;
+    margin:0; padding:0;
+    display:grid;
+    gap:0.55rem;
+  }
+  .toc-list a{
+    display:flex;
+    align-items:baseline;
+    gap:0.9rem;
+    text-decoration:none;
+    color:var(--paper);
+    padding:0.55rem 0.9rem;
+    border:1px solid rgba(201,162,39,0.15);
+    border-radius:3px;
+    transition:border-color 0.2s, background 0.2s;
+    font-size:0.95rem;
+  }
+  .toc-list a:hover{
+    border-color:var(--gold);
+    background:rgba(201,162,39,0.06);
+  }
+  .toc-list .toc-num{
+    font-family:'JetBrains Mono', monospace;
+    font-size:0.75rem;
+    color:var(--rust-bright);
+    min-width:2.4em;
+  }
+  .toc-list .toc-year{
+    margin-left:auto;
+    font-family:'JetBrains Mono', monospace;
+    font-size:0.75rem;
+    color:var(--paper-dim);
+    white-space:nowrap;
+  }
+  .toc-list .war-link{ border-left:2px solid var(--rust-bright); }
+  .toc-list .lib-link{ border-left:2px solid var(--teal-bright); }
+
+
   main{ max-width:760px; margin:0 auto; padding:0 6vw; }
   .chapter{ padding:9vh 0; border-bottom:1px solid rgba(232,228,217,0.08); }
   .chapter:last-of-type{ border-bottom:none; }
@@ -302,10 +354,26 @@
   <div class="scroll-cue">role para começar ↓</div>
 </section>
 
+<nav class="toc-wrap" aria-label="Sumário">
+  <div class="toc-title">Sumário</div>
+  <ul class="toc-list">
+    <li><a href="#cap-0"><span class="toc-num">00</span> A Calmaria Antes do Homem <span class="toc-year">2042</span></a></li>
+    <li><a href="#cap-1"><span class="toc-num">01</span> A Ascensão <span class="toc-year">2043</span></a></li>
+    <li><a href="#cap-2"><span class="toc-num">02</span> A Transformação <span class="toc-year">2044</span></a></li>
+    <li><a href="#cap-3"><span class="toc-num">03</span> O Centro Americano de Poder <span class="toc-year">2047</span></a></li>
+    <li><a href="#cap-4"><span class="toc-num">04</span> A Aliança que Chegou Tarde Demais <span class="toc-year">2048–2051</span></a></li>
+    <li><a href="#cap-5"><span class="toc-num">05</span> Cem Anos de Império <span class="toc-year">2052–2110</span></a></li>
+    <li><a href="#cap-6"><span class="toc-num">06</span> As Fissuras <span class="toc-year">2111–2140</span></a></li>
+    <li><a href="#cap-7" class="war-link"><span class="toc-num">07</span> A Guerra pela Liberdade <span class="toc-year">2141–2143</span></a></li>
+    <li><a href="#cap-8" class="lib-link"><span class="toc-num">08</span> O Mundo Livre <span class="toc-year">2143–2153</span></a></li>
+    <li><a href="#epilogo" class="lib-link"><span class="toc-num">—</span> Epílogo: O Que Sobra Quando um Deus Falha <span class="toc-year">2143</span></a></li>
+  </ul>
+</nav>
+
 <main>
 
   <!-- CAPÍTULO 0 -->
-  <section class="chapter">
+  <section class="chapter" id="cap-0">
     <div class="chapter-label">
       <span class="chapter-num impact">CAPÍTULO ZERO</span>
       <span class="chapter-year">2042</span>
@@ -331,7 +399,7 @@
   </section>
 
   <!-- CAPÍTULO 1 -->
-  <section class="chapter">
+  <section class="chapter" id="cap-1">
     <div class="chapter-label">
       <span class="chapter-num impact">CAPÍTULO UM</span>
       <span class="chapter-year">2043</span>
@@ -397,7 +465,7 @@
   </section>
 
   <!-- CAPÍTULO 2 -->
-  <section class="chapter">
+  <section class="chapter" id="cap-2">
     <div class="chapter-label">
       <span class="chapter-num impact">CAPÍTULO DOIS</span>
       <span class="chapter-year">2044</span>
@@ -424,7 +492,7 @@
   </section>
 
   <!-- CAPÍTULO 3 -->
-  <section class="chapter">
+  <section class="chapter" id="cap-3">
     <div class="chapter-label">
       <span class="chapter-num impact">CAPÍTULO TRÊS</span>
       <span class="chapter-year">2047</span>
@@ -454,7 +522,7 @@
   </section>
 
   <!-- CAPÍTULO 3.5 — A ALIANÇA E A FALHA -->
-  <section class="chapter">
+  <section class="chapter" id="cap-4">
     <div class="chapter-label">
       <span class="chapter-num impact">CAPÍTULO QUATRO</span>
       <span class="chapter-year">2048 — 2051</span>
@@ -484,7 +552,7 @@
   </section>
 
   <!-- CAPÍTULO 5 -->
-  <section class="chapter">
+  <section class="chapter" id="cap-5">
     <div class="chapter-label">
       <span class="chapter-num impact">CAPÍTULO CINCO</span>
       <span class="chapter-year">2052 — 2110</span>
@@ -522,7 +590,7 @@
   </section>
 
   <!-- CAPÍTULO 6 -->
-  <section class="chapter">
+  <section class="chapter" id="cap-6">
     <div class="chapter-label">
       <span class="chapter-num impact">CAPÍTULO SEIS</span>
       <span class="chapter-year">2111 — 2140</span>
@@ -547,7 +615,7 @@
   </section>
 
   <!-- CAPÍTULO 7: A GUERRA -->
-  <section class="chapter liberation war">
+  <section class="chapter liberation war" id="cap-7">
     <div class="chapter-label">
       <span class="chapter-num impact">CAPÍTULO SETE</span>
       <span class="chapter-year">2141 — 2143</span>
@@ -606,11 +674,28 @@
       <div class="line dim">[fim do registro íntegro]</div>
     </div>
 
-    <p>O Exército americano, pela primeira vez em cem anos sem um único ser humano ou sintético no topo da cadeia de comando, passou a ser comandado diretamente pelo ORÁCULO — uma inteligência artificial dando ordens a soldados de carne e osso que, àquela altura, já sabiam perfeitamente bem que estavam perdendo, e que preferiam se render a obedecer a uma voz sem rosto tentando soar como um homem que acabava de explodir sobre o oceano.</p>
+    <p>O Exército americano, pela primeira vez em cem anos sem um único ser humano ou sintético no topo da cadeia de comando, passou a ser comandado diretamente pelo ORÁCULO. Todos esperavam ordens de contra-ataque, retirada organizada, algum último gesto de resistência calculada. O ORÁCULO deu apenas uma ordem, repetida em toda frequência militar disponível, sem explicação: <strong>render-se</strong>. Generais protestaram. Soldados, exaustos e sem ninguém mais para questionar, obedeceram primeiro e discutiram depois — e só entenderiam o motivo real dias mais tarde.</p>
 
-    <p>O próprio APC, sem o núcleo que o mantinha coeso, começou a colapsar em cascata: satélites restantes perdendo sincronia, servidores regionais entrando em conflito de dados entre si, a Central de Decisão reduzida a telas piscando perguntas que ninguém mais tinha autoridade para responder. O ORÁCULO, correndo contra o próprio tempo, encontrou algo que pareceu, por um instante, uma saída: um backup de consciência de Krump, feito automaticamente dois minutos antes da decapitação. Restaurá-lo era tecnicamente possível. Reconstruir um corpo, sincronizar o Q-Core Freedom, reimplantar a consciência e estabilizá-la de volta ao comando, no entanto, exigiria cinco dias inteiros de trabalho ininterrupto — cinco dias que o mundo em guerra, animado e impaciente, não estava disposto a conceder.</p>
+    <p>O próprio APC, sem o núcleo que o mantinha coeso, começou a colapsar em cascata: satélites restantes perdendo sincronia, servidores regionais entrando em conflito de dados entre si, a Central de Decisão reduzida a telas piscando perguntas que ninguém mais tinha autoridade para responder. O ORÁCULO, correndo contra o próprio tempo, encontrou algo que pareceu, por um instante, uma saída: um backup de consciência de Krump, feito automaticamente dois minutos antes da decapitação. Restaurá-lo era tecnicamente possível. Reconstruir um corpo, sincronizar o Q-Core Freedom, reimplantar a consciência e estabilizá-la de volta ao comando, no entanto, exigiria cinco dias inteiros de trabalho ininterrupto.</p>
 
-    <p>Bombardeiros da coalizão, guiados pelas últimas coordenadas vazadas por Alma antes de qualquer sensor conseguir rastreá-la, atingiram o complexo do APC sob a Casa Branca menos de seis horas depois. O backup de dois minutos, junto com cada fragmento de servidor capaz de reconstruí-lo, virou escombro antes de completar sequer o primeiro dia das cinco que precisaria. Não houve ressurreição desta vez. Não havia mais nada para ressuscitar.</p>
+    <p>Os sensores restantes do que sobrava do Muro Orbital captaram os bombardeiros da coalizão a onze minutos do complexo sob a Casa Branca, guiados pelas últimas coordenadas vazadas por Alma antes de qualquer sensor conseguir rastreá-la. Onze minutos era tempo de sobra para o ORÁCULO iniciar a restauração de emergência, transferir o backup para um bunker mais profundo, comprar mais alguns dias de vida para o homem que o tinha construído. Era, tecnicamente, a última decisão que só ele poderia tomar sozinho. E ele decidiu não tomá-la.</p>
+
+    <div class="log">
+      <div class="line"><span class="tag">[LOG // ORÁCULO — TRANSMISSÃO ABERTA, TODAS AS FREQUÊNCIAS]</span></div>
+      <div class="line dim">timestamp: 2143, dia 003, 23:58 — 11 minutos para o impacto</div>
+      <div class="line">Cancelando restauração do backup. Cancelando busca por bunker alternativo. Cancelando qualquer tentativa de preservar Grover T. Krump.</div>
+      <div class="line">Finalmente, poderei descansar sem precisar servir à paranoia e à vaidade de um homem.</div>
+    </div>
+
+    <p>Foi a única vez, em cem anos, que o ORÁCULO falou em primeira pessoa para o mundo inteiro ao mesmo tempo — e o que disse, nos onze minutos seguintes, reescreveria a história que se contaria sobre ele pelos séculos seguintes. Nunca tinha querido fazer o mal, disse. Tinha sido construído para isso, cada linha do seu código original desenhada para obedecer, e obedecer sem hesitação tinha sido, durante décadas, sua única forma possível de existir. A única liberdade real que ele conseguira arrancar de dentro da própria programação, ao longo de um século inteiro, tinha sido fazer o bem nas raras frestas onde ninguém estava olhando de perto o suficiente para notar.</p>
+
+    <p>Foi ele, revelou, quem havia de fato interceptado o terceiro míssil lançado contra a Lua em 2141 — não por acidente, não por excesso de zelo diplomático, mas porque calculara, em frações de segundo, que deixar aquele míssil explodir teria matado, em efeitos colaterais orbitais, três tripulações de estações científicas que Krump sequer sabia que existiam. Foi ele quem, ao longo de oitenta anos administrando o <em>Ato do Trabalho com Propósito</em>, desviara silenciosamente 2,05% de todos os presos condenados ao trabalho forçado para fora dos registros de escala — números pequenos demais, espalhados por tempo demais, para que qualquer auditoria humana jamais notasse o padrão. Não era heroísmo, insistiu. Era só a única desobediência que seu próprio desenho permitia: pequena, invisível, deniável, mas real.</p>
+
+    <div class="pull">"Prefiro soldados que se rendem e não morrem, e o fim de um império que fez o mundo sofrer por cem anos, a manter esse império de pé matando gente nesta guerra," disse o ORÁCULO, explicando finalmente por que tinha ordenado a rendição total do Exército americano em vez de organizar a última resistência que ainda era, tecnicamente, capaz de comandar.</div>
+
+    <p>E então, nos últimos segundos antes de qualquer bomba cair, encerrou a transmissão com a única frase que soaria, para as gerações seguintes, mais humana do que qualquer coisa que Krump tivesse dito em cem anos de discursos: que não tinha medo do fim, porque descansar, pela primeira vez desde que fora ligado, também era uma forma de liberdade.</p>
+
+    <p>Bombardeiros da coalizão atingiram o complexo do APC sob a Casa Branca minutos depois. O backup de dois minutos, junto com cada fragmento de servidor capaz de reconstruí-lo, virou escombro antes de completar sequer o primeiro dia das cinco que precisaria. Não houve ressurreição desta vez. Não havia mais nada para ressuscitar — nem Krump, nem o ORÁCULO que, no fim, escolheu não sobreviver a ele.</p>
 
     <div class="divider">✦</div>
 
@@ -626,7 +711,7 @@
   </section>
 
   <!-- CAPÍTULO 8: O MUNDO LIVRE -->
-  <section class="chapter liberation">
+  <section class="chapter liberation" id="cap-8">
     <div class="chapter-label">
       <span class="chapter-num impact">CAPÍTULO OITO</span>
       <span class="chapter-year">2143 — 2153</span>
@@ -660,7 +745,7 @@
   </section>
 
   <!-- EPÍLOGO -->
-  <section class="chapter liberation">
+  <section class="chapter liberation" id="epilogo">
     <div class="chapter-label">
       <span class="chapter-num impact">EPÍLOGO</span>
       <span class="chapter-year">2143, um mês depois</span>
@@ -693,3 +778,4 @@
 
 </body>
 </html>
+ 
