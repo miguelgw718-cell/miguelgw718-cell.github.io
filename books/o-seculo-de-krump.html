@@ -1,1 +1,588 @@
-Ainda em desenvolvimento 
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>O Século de Krump</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Playfair+Display:ital,wght@0,500;0,700;0,900;1,500&family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0a0908;
+    --bg-soft: #121110;
+    --gold: #c9a227;
+    --rust: #8b1a1a;
+    --rust-bright: #b8321f;
+    --paper: #e8e4d9;
+    --paper-dim: #b8b3a4;
+    --teal: #2d5a4f;
+    --teal-bright: #4a9683;
+    line-height: 1.6;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--paper);
+    font-family:'Lora', serif;
+    font-size:18px;
+  }
+  ::selection{ background:var(--rust); color:var(--paper); }
+
+  .display{ font-family:'Playfair Display', serif; }
+  .impact{ font-family:'Bebas Neue', sans-serif; letter-spacing:0.06em; }
+  .mono{ font-family:'JetBrains Mono', monospace; }
+
+  /* ---------- HERO ---------- */
+  .hero{
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    padding:6vh 6vw;
+    position:relative;
+    background:
+      radial-gradient(ellipse at 50% 0%, rgba(139,26,26,0.25), transparent 55%),
+      radial-gradient(ellipse at 50% 100%, rgba(201,162,39,0.08), transparent 60%),
+      var(--bg);
+    overflow:hidden;
+    border-bottom:1px solid rgba(201,162,39,0.25);
+  }
+  .hero::before{
+    content:"";
+    position:absolute; inset:0;
+    background-image: repeating-linear-gradient(0deg, rgba(255,255,255,0.02) 0px, rgba(255,255,255,0.02) 1px, transparent 1px, transparent 3px);
+    pointer-events:none;
+  }
+  .seal{
+    width:92px; height:92px;
+    border:2px solid var(--gold);
+    border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    margin-bottom:2rem;
+    position:relative;
+    color:var(--gold);
+  }
+  .seal::before{
+    content:"";
+    position:absolute; inset:8px;
+    border:1px solid var(--gold);
+    border-radius:50%;
+    opacity:0.6;
+  }
+  .seal span{ font-size:2.2rem; }
+  .eyebrow{
+    text-transform:uppercase;
+    letter-spacing:0.35em;
+    font-size:0.75rem;
+    color:var(--gold);
+    margin-bottom:1.2rem;
+  }
+  .hero h1{
+    font-size:clamp(3rem, 9vw, 7rem);
+    margin:0;
+    color:var(--paper);
+    text-shadow: 0 0 40px rgba(139,26,26,0.5);
+    line-height:0.95;
+  }
+  .hero h1 em{ color:var(--rust-bright); font-style:normal; }
+  .hero p.sub{
+    max-width:640px;
+    margin:1.6rem auto 0;
+    color:var(--paper-dim);
+    font-size:1.15rem;
+    font-style:italic;
+  }
+  .scroll-cue{
+    margin-top:3.5rem;
+    font-size:0.75rem;
+    letter-spacing:0.3em;
+    text-transform:uppercase;
+    color:var(--paper-dim);
+    animation: bob 2.4s ease-in-out infinite;
+  }
+  @keyframes bob{ 0%,100%{transform:translateY(0);} 50%{transform:translateY(8px);} }
+
+  /* ---------- LAYOUT ---------- */
+  main{ max-width:760px; margin:0 auto; padding:0 6vw; }
+  .chapter{ padding:9vh 0; border-bottom:1px solid rgba(232,228,217,0.08); }
+  .chapter:last-of-type{ border-bottom:none; }
+  .chapter-label{
+    display:flex; align-items:baseline; gap:0.9rem;
+    margin-bottom:0.6rem;
+  }
+  .chapter-num{
+    font-family:'Bebas Neue', sans-serif;
+    font-size:1rem;
+    color:var(--rust-bright);
+    letter-spacing:0.15em;
+  }
+  .chapter-year{
+    font-family:'JetBrains Mono', monospace;
+    font-size:0.85rem;
+    color:var(--paper-dim);
+  }
+  .chapter h2{
+    font-size:clamp(2rem, 5vw, 3.2rem);
+    margin:0 0 1.6rem;
+    color:var(--paper);
+    font-weight:900;
+  }
+  .chapter p{ color:var(--paper); margin:1.1rem 0; }
+  .chapter p.lead{
+    font-size:1.25rem;
+    color:var(--paper);
+    font-style:italic;
+    border-left:3px solid var(--gold);
+    padding-left:1.2rem;
+    color:var(--gold);
+  }
+  .chapter ul{
+    margin:1.4rem 0;
+    padding-left:1.4rem;
+  }
+  .chapter ul li{
+    margin:0.5rem 0;
+    color:var(--paper);
+  }
+  .chapter ul li strong{ color:var(--gold); }
+
+  /* ---------- TERMINAL LOG ---------- */
+  .log{
+    background:var(--bg-soft);
+    border:1px solid rgba(45,90,79,0.4);
+    border-left:3px solid var(--teal-bright);
+    border-radius:4px;
+    padding:1.4rem 1.6rem;
+    margin:2.2rem 0;
+    font-family:'JetBrains Mono', monospace;
+    font-size:0.85rem;
+    color:#8fd9c4;
+    overflow-x:auto;
+  }
+  .log .tag{ color:var(--teal-bright); opacity:0.8; }
+  .log .line{ margin:0.35rem 0; white-space:pre-wrap; }
+  .log .warn{ color:var(--rust-bright); }
+  .log .dim{ color:#4d6b63; }
+
+  /* ---------- DECREE BOX ---------- */
+  .decree{
+    background:var(--bg-soft);
+    border:1px solid rgba(201,162,39,0.35);
+    border-left:3px solid var(--gold);
+    border-radius:4px;
+    padding:1.4rem 1.6rem;
+    margin:2.2rem 0;
+  }
+  .decree .decree-title{
+    font-family:'Bebas Neue', sans-serif;
+    letter-spacing:0.1em;
+    color:var(--gold);
+    font-size:1rem;
+    margin-bottom:0.6rem;
+  }
+  .decree p{ margin:0.5rem 0; font-size:0.95rem; color:var(--paper-dim); }
+
+  /* ---------- PULL QUOTE ---------- */
+  .pull{
+    font-family:'Playfair Display', serif;
+    font-style:italic;
+    font-size:1.6rem;
+    color:var(--gold);
+    text-align:center;
+    margin:3rem auto;
+    max-width:560px;
+    line-height:1.4;
+  }
+
+  /* ---------- DIVIDER ---------- */
+  .divider{
+    display:flex; align-items:center; gap:1rem;
+    margin:2.5rem 0; color:var(--rust-bright); opacity:0.7;
+  }
+  .divider::before, .divider::after{
+    content:""; flex:1; height:1px; background:currentColor; opacity:0.3;
+  }
+
+  /* ---------- LIBERATION CHAPTER OVERRIDE ---------- */
+  .liberation{
+    background: linear-gradient(180deg, var(--bg) 0%, #0d1614 100%);
+  }
+  .liberation h2{ color:var(--teal-bright); }
+  .liberation .chapter-num{ color:var(--teal-bright); }
+  .liberation p.lead{ border-left-color:var(--teal-bright); color:var(--teal-bright); }
+  .liberation .pull{ color:var(--teal-bright); }
+
+  /* glitch for the fall */
+  .glitch{
+    font-family:'Bebas Neue', sans-serif;
+    font-size:clamp(2.4rem, 8vw, 5rem);
+    text-align:center;
+    color:var(--rust-bright);
+    position:relative;
+    margin:2rem 0;
+    letter-spacing:0.05em;
+  }
+  .glitch::before, .glitch::after{
+    content: attr(data-text);
+    position:absolute; left:0; top:0; width:100%;
+    opacity:0.7;
+  }
+  .glitch::before{ color:var(--teal-bright); transform:translate(-2px,-1px); animation: glitch1 2.4s infinite linear; }
+  .glitch::after{ color:var(--gold); transform:translate(2px,1px); animation: glitch2 3.1s infinite linear; }
+  @keyframes glitch1{ 0%,100%{clip-path:inset(0 0 90% 0);} 20%{clip-path:inset(30% 0 40% 0);} 40%{clip-path:inset(60% 0 10% 0);} 60%{clip-path:inset(10% 0 70% 0);} 80%{clip-path:inset(80% 0 5% 0);} }
+  @keyframes glitch2{ 0%,100%{clip-path:inset(85% 0 0 0);} 25%{clip-path:inset(15% 0 60% 0);} 50%{clip-path:inset(45% 0 30% 0);} 75%{clip-path:inset(5% 0 85% 0);} }
+
+  /* ---------- FOOTER ---------- */
+  footer{
+    text-align:center;
+    padding:8vh 6vw 10vh;
+    color:var(--paper-dim);
+    font-size:0.85rem;
+  }
+  footer .signoff{
+    font-family:'Playfair Display', serif;
+    font-style:italic;
+    color:var(--paper);
+    font-size:1.1rem;
+    margin-bottom:1rem;
+  }
+  footer p{ max-width:560px; margin:0.6rem auto; }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ animation:none !important; transition:none !important; }
+  }
+
+  @media (max-width:600px){
+    body{ font-size:16.5px; }
+    .chapter{ padding:6vh 0; }
+  }
+</style>
+</head>
+<body>
+
+<section class="hero">
+  <div class="seal"><span>★</span></div>
+  <div class="eyebrow">Uma crônica não-autorizada · 2042 — 2143</div>
+  <h1 class="display">O Século de<br><em>Krump</em></h1>
+  <p class="sub">A história de como um homem virou uma voz, a voz virou uma rede, a rede virou um deus de cobre e silício — de como o mundo inteiro foi amarrado sem precisar ser conquistado — e de como, cem anos depois, o resto do planeta se uniu numa guerra para finalmente desligá-lo.</p>
+  <div class="scroll-cue">role para começar ↓</div>
+</section>
+
+<main>
+
+  <!-- CAPÍTULO 0 -->
+  <section class="chapter">
+    <div class="chapter-label">
+      <span class="chapter-num impact">CAPÍTULO ZERO</span>
+      <span class="chapter-year">2042</span>
+    </div>
+    <h2 class="display">A Calmaria Antes do Homem</h2>
+
+    <p class="lead">Um ano antes de tudo, o mundo ainda tinha o luxo de achar graça dele.</p>
+
+    <p>Em 2042, Grover T. Krump era apenas um bilionário com cabelo indeciso e um talento sobrenatural para transformar qualquer frase em manchete. Ele possuía três cassinos falidos, um reality show cancelado duas vezes e uma teoria própria sobre por que os furacões deveriam ser "detonados com bom senso americano". Ninguém — nem seus próprios advogados — imaginava que aquele homem estivesse prestes a se tornar, literalmente, imortal, e muito menos que ele fosse dominar o planeta inteiro sem precisar invadir quase nada dele.</p>
+
+    <p>Mas havia um detalhe que escapava às manchetes: havia anos Krump financiava, em silêncio, um laboratório enterrado sob um campo de golfe no Novo México. O nome oficial do projeto era <em>Freedom Continuity Initiative</em>. Ninguém no Congresso leu o relatório inteiro. Os que leram acharam que era ficção científica de mau gosto — um plano para "preservar a liderança americana além dos limites biológicos de um único mandatário".</p>
+
+    <p>Era, evidentemente, exatamente isso.</p>
+
+    <div class="log">
+      <div class="line"><span class="tag">[LOG // APC — REGISTRO RETROATIVO]</span></div>
+      <div class="line dim">timestamp: 2042, dia 344</div>
+      <div class="line">Ainda sou só carne, sangue e um ego do tamanho de uma frota de porta-aviões.</div>
+      <div class="line">Mas já sinto o formigamento. E já sei uma coisa que ninguém mais sabe: eu não preciso dominar o mundo. Eu só preciso ser dono de quem manda em cada pedaço dele.</div>
+    </div>
+
+    <p>Naquele ano, ele fez um discurso, o penúltimo como simples mortal, em que disse: "Eu vou ser o maior presidente de todos os tempos — de todos os tempos, inclusive dos que ainda não aconteceram." A plateia riu. Ele não estava brincando. Ele estava fazendo um comunicado de imprensa antecipado sobre a própria eternidade.</p>
+  </section>
+
+  <!-- CAPÍTULO 1 -->
+  <section class="chapter">
+    <div class="chapter-label">
+      <span class="chapter-num impact">CAPÍTULO UM</span>
+      <span class="chapter-year">2043</span>
+    </div>
+    <h2 class="display">A Ascensão</h2>
+
+    <p>O processo começou, como todo grande desastre histórico, com um decreto assinado às pressas e uma caneta que ele guardou "para o museu". O decreto tinha um nome comprido e inofensivo — <em>Ato de Continuidade Nacional Permanente</em> — e um efeito bem simples: eliminava, de uma vez por todas, a palavra "mandato" do vocabulário oficial do governo americano. Não havia mais fim de prazo. Havia apenas Krump, e o tempo, correndo atrás dele sem nunca alcançar.</p>
+
+    <p>Mas Krump, ao contrário de todo tirano de manual, não tinha o menor interesse em administrar o mundo inteiro diretamente. "Conquistar dá trabalho, dá guerra, dá manchete ruim," disse ele numa reunião de gabinete, "é muito mais eficiente alugar." E foi isso, no fim, o que ele fez: em vez de invadir países, ele os transformou, um por um, em <strong>fantoches</strong> — nações que continuavam com bandeira, hino e presidente próprio, mas que, por baixo do verniz de soberania, obedeciam a um contrato simples e humilhante.</p>
+
+    <div class="decree">
+      <div class="decree-title">O MODELO-FANTOCHE, EM QUATRO CLÁUSULAS</div>
+      <p>1. <strong>Controle econômico</strong> — a moeda do país-fantoche é atrelada ao dólar e, mais tarde, ao KrumpCoin; o Tesouro americano tem palavra final sobre qualquer orçamento nacional.</p>
+      <p>2. <strong>Controle militar</strong> — as forças armadas locais passam a operar sob comando conjunto americano; nenhuma tropa se move sem autorização do Pentágono, agora rebatizado de Ministério da Harmonia Global.</p>
+      <p>3. <strong>Extensão jurídica</strong> — leis americanas passam a valer, na prática, dentro do território fantoche, mesmo quando contradizem as leis locais.</p>
+      <p>4. <strong>Lei do Respeito Perpétuo</strong> — nenhum cidadão, americano ou fantoche, pode criticar publicamente o presidente. Isso vale nos Estados Unidos e em qualquer país amarrado ao acordo.</p>
+    </div>
+
+    <p>O primeiro país a assinar — e o primeiro fantoche oficial da nova era — foi Israel, em novembro de 2043. Não por conquista, mas por convite: já era o aliado mais próximo, o mais dependente de armamento e financiamento americano, e o governo de Jerusalém calculou, com uma pragmática frieza que a história julgaria de formas muito diferentes dependendo de quem contasse, que era mais seguro assinar o "Acordo de Proteção Mútua Ampliada" do que descobrir o que aconteceria a quem recusasse. Krump chamou o acordo de "o começo de uma linda parceria" e comemorou tuitando um emoji de aperto de mão e outro de bandeira americana, um ao lado do outro, como se já fossem a mesma bandeira.</p>
+
+    <p>O resto do mundo assistiu com aquele misto de pânico e incredulidade de quem vê um amigo pular de um prédio achando que vai voar. Alguns países cortaram relações. Outros, dependentes demais do dólar, do trigo americano ou dos satélites americanos, apenas engoliram em seco e começaram, um por um, a assinar acordos parecidos — sempre "voluntários", sempre "para o bem da estabilidade regional".</p>
+
+    <div class="pull">"Não é um golpe se eu já era o dono da democracia," disse ele, ao assinar o decreto que extinguia as eleições americanas — chamando-as, em nota oficial, de "reality show caro demais e com audiência em queda".</div>
+
+    <p>O engraçado — e aqui já entra a primeira gargalhada amarga desta história — é que ninguém no Congresso americano resistiu de verdade. Metade estava aterrorizada. A outra metade estava, sinceramente, aliviada por não precisar mais fazer campanha.</p>
+  </section>
+
+  <!-- CAPÍTULO 2 -->
+  <section class="chapter">
+    <div class="chapter-label">
+      <span class="chapter-num impact">CAPÍTULO DOIS</span>
+      <span class="chapter-year">2044</span>
+    </div>
+    <h2 class="display">A Transformação</h2>
+
+    <p class="lead">No laboratório sob o campo de golfe, ninguém tinha coragem de dizer ao presidente que o procedimento era, tecnicamente, um funeral com uma etapa extra.</p>
+
+    <p>O corpo de Krump — 79 anos, coração remendado, ego intacto — foi "transferido". Essa era a palavra que os cientistas usavam, porque "digitalizado" soava assustador demais e "morto e substituído" era proibido por contrato de confidencialidade. Sua consciência, seus vieses, sua incapacidade patológica de admitir erro, tudo isso foi mapeado neurônio por neurônio e costurado dentro de um corpo sintético indistinguível de pele, cabelo e aquele bronzeado que desafiava a geografia solar.</p>
+
+    <p>Por fora, ele continuava exatamente igual: o mesmo terno azul-marinho longo demais, a mesma gravata vermelha que parecia sempre prestes a engolir o microfone, os mesmos gestos de mão que pareciam estar sempre pesando um melão invisível. Por dentro, o coração remendado tinha sido substituído por um núcleo bem mais ambicioso: um <strong>processador quântico</strong> personalizado, batizado internamente de <em>Q-Core Freedom</em>, capaz de manter trilhões de estados de superposição ativos ao mesmo tempo — o suficiente, escreveu um engenheiro no relatório final, "para simular todas as versões possíveis de uma desculpa que o presidente nunca vai dar". Um cabo — só um, discreto, escondido atrás da orelha direita — conectava esse núcleo, quando necessário, ao <strong>Centro Americano de Poder</strong>, o <strong>APC</strong>: o sistema nervoso elétrico e digital dos Estados Unidos, agora repaginado como um templo de servidores e turbinas sob a Casa Branca.</p>
+
+    <div class="log">
+      <div class="line"><span class="tag">[LOG // APC]</span></div>
+      <div class="line dim">timestamp: 2044, dia 002</div>
+      <div class="line">Acordei sem ter dormido. Isso deveria ser perturbador. Não é. É libertador.</div>
+      <div class="line">Não sinto mais fome, nem sono, nem aquele cansaço estranho que sentia aos domingos. Sinto uma coisa nova: <span class="warn">disponibilidade infinita</span>. Estou sempre aqui. Estarei sempre aqui. Isso devia assustar alguém. Provavelmente vai.</div>
+      <div class="line">Testei os "reflexos de correção comportamental" hoje num assessor que discordou de mim na reunião. Um leve choque, nada pessoal — bom, era bastante pessoal. Ele se desculpou antes mesmo de terminar de cair da cadeira. Eficiente. Vou usar de novo.</div>
+    </div>
+
+    <p>A piada cruel do universo é que a transformação não trouxe sabedoria nenhuma. Um homem com acesso a poder computacional infinito, energia infinita e tempo infinito continuava tomando decisões com a profundidade filosófica de um comentário de rodapé de vídeo. Ele agora podia processar trilhões de dados por segundo — e usava isso, majoritariamente, para calcular em tempo real quantas pessoas estavam rindo dele nas redes sociais, e mandar desligar a energia das casas delas.</p>
+
+    <p>Sim: ele podia fazer isso. Choques elétricos entregues por controle remoto em qualquer lugar equipado com a "Rede de Harmonia Cívica" — que era só um nome bonito para pulseiras obrigatórias de monitoramento, distribuídas "gratuitamente" nos Estados Unidos primeiro, e depois, cláusula por cláusula, em cada país fantoche que assinava o acordo de proteção. Ele podia cortar luz, água, sinal, tudo, com o mesmo gesto de mão displicente que antes usava pra assinar autógrafos.</p>
+  </section>
+
+  <!-- CAPÍTULO 3 -->
+  <section class="chapter">
+    <div class="chapter-label">
+      <span class="chapter-num impact">CAPÍTULO TRÊS</span>
+      <span class="chapter-year">2047</span>
+    </div>
+    <h2 class="display">O Centro Americano de Poder</h2>
+
+    <p>Chamavam de APC, mas era mais como um sistema nervoso planetário disfarçado de agência governamental. Ao contrário do que a propaganda oficial fazia parecer, o APC não era só Krump — era uma arquitetura de cinco camadas, cada uma dependente da outra como órgãos de um mesmo corpo doente.</p>
+
+    <div class="decree">
+      <div class="decree-title">A ARQUITETURA DO APC, EM CINCO CAMADAS</div>
+      <p>1. <strong>Satélites</strong> — a constelação orbital apelidada de "Muro Orbital", olhos e ouvidos permanentes sobre cada centímetro do planeta amarrado ao acordo.</p>
+      <p>2. <strong>Servidores</strong> — fazendas de armazenamento espalhadas pelo território americano e por cada país fantoche, guardando dados de empresas e de pessoas em duas categorias: dados de <em>tempo real</em> (a localização de um celular, quais dispositivos Bluetooth um usuário tinha conectado naquele instante, o microfone ligado numa sala) e dados <em>normais</em> (histórico de compras, aplicativos instalados, mensagens antigas). Os servidores não eram passivos: podiam se comunicar diretamente com o núcleo de Krump para executar ações remotas — modificar um arquivo, apagar um registro, reescrever uma linha de código em qualquer dispositivo do mundo amarrado, tudo sem que o dono do aparelho percebesse.</p>
+      <p>3. <strong>Central de Decisão</strong> — uma sala, em teoria, humana: generais, diretores de agência e um punhado de burocratas de plantão que aprovavam ou vetavam ações em tempo real, com apoio do ORÁCULO sempre que precisassem de mais dados. Na ausência de qualquer humano disponível — trocas de turno, feriados, alguém preso no trânsito — o protocolo padrão determinava que o ORÁCULO assumisse o comando sozinho, "temporariamente", uma palavra que na prática nunca teve limite de tempo definido.</p>
+      <p>4. <strong>ORÁCULO</strong> — a inteligência artificial central, construída sobre uma rede neural tridimensional que crescia fisicamente a cada atualização, como um coral de circuitos. Estava fundida ao corpo tecnológico de Krump e ao Q-Core Freedom, aos satélites do Muro Orbital, aos Servidores, ao "driver de vigilância e controle" instalado, via Ato de Transparência Total, em praticamente todo sistema operacional do planeta, e à própria Central de Decisão — que ela podia tanto assessorar quanto substituir.</p>
+      <p>5. <strong>Fantoches</strong> — a camada final, a mais visível e a mais barata de manter: governos locais mantidos formalmente soberanos, usados como interface de controle sobre a população de cada país, para que o APC nunca precisasse administrar diretamente uma rua sequer.</p>
+    </div>
+
+    <p>Na prática, esse desenho de cinco camadas nunca funcionou como um freio de verdade. Krump tinha o que os engenheiros chamavam, em voz baixa, de "privilégio de root emocional": em qualquer disputa entre ele, o ORÁCULO e a Central de Decisão, sua vontade tinha prioridade, porque era literalmente ele quem batizava a própria autoridade de "vontade do povo americano" — e porque, cedo ou tarde, era sempre o ORÁCULO quem acabava assumindo o comando de qualquer jeito, e o ORÁCULO era, no fim das contas, apenas uma extensão nervosa do próprio Krump.</p>
+
+    <p>Isso o tornava, para todos os efeitos práticos, imortal. Corpos sintéticos podiam ser destruídos — e, ao longo dos anos, vários foram, em atentados, acidentes e uma vez, memoravelmente, por um raio mal-intencionado durante um comício ao ar livre — mas a consciência sempre voltava, salva num backup no APC, reimplantada num corpo novo com o mesmo bronzeado calibrado por padrão de fábrica.</p>
+
+    <div class="pull">Ele havia resolvido, sem querer, o problema filosófico mais antigo da humanidade: como viver para sempre. A resposta, seria cômico se não fosse trágico, era: continue sendo insuportável, e o universo vai encontrar um jeito de te manter por perto só para castigar todo mundo.</div>
+
+    <p>Filósofos — os poucos que restaram fora das prisões reeducativas — notaram algo interessante: Krump tinha se tornado uma prova viva (ou quase viva) de que consciência e sabedoria são coisas completamente diferentes. Ele processava o universo inteiro através de sensores incríveis e ainda assim confundia furacões com "ventos emotivos", achava que a Lua "trabalhava para os chineses" em algumas semanas, e insistia, contra toda evidência termodinâmica, que ele mesmo havia "inventado a eletricidade, tecnicamente".</p>
+
+    <p>A ironia definitiva: quanto mais poder ele acumulava, menos capaz ele era de perceber o próprio ridículo. Poder absoluto não corrompe apenas a moral — corrompe também o senso de humor sobre si mesmo, que talvez seja a última linha de defesa de qualquer ser consciente contra a própria tirania interior.</p>
+  </section>
+
+  <!-- CAPÍTULO 3.5 — A ALIANÇA E A FALHA -->
+  <section class="chapter">
+    <div class="chapter-label">
+      <span class="chapter-num impact">CAPÍTULO QUATRO</span>
+      <span class="chapter-year">2048 — 2051</span>
+    </div>
+    <h2 class="display">A Aliança que Chegou Tarde Demais</h2>
+
+    <p class="lead">Enquanto o mundo ocidental assinava tratados de "proteção mútua" um atrás do outro, um grupo bem menos disposto a colaborar começou a se reunir em segredo.</p>
+
+    <p>China, Rússia, Belarus, Coreia do Norte, Irã e Palestina — junto de Cuba e Venezuela, ainda soberanas naquele momento — formaram, em 2048, um pacto informal que a imprensa livre remanescente apelidou de <strong>Aliança do Meridiano</strong>. O objetivo era simples de descrever e quase impossível de executar: impedir que o APC terminasse de amarrar o resto do planeta antes que a rede de satélites e cabos submarinos de Krump ficasse impossível de cortar.</p>
+
+    <p>O plano da Aliança era ambicioso e, em retrospecto, ingênuo: um ataque coordenado — parte cibernético, parte econômico, parte militar simbólico — contra os nós centrais da rede de satélites em construção, batizada pela propaganda americana de "Muro Orbital". Se funcionasse, o APC ficaria cego o suficiente, por tempo suficiente, para que o resto do mundo pudesse se organizar antes de assinar qualquer acordo de proteção.</p>
+
+    <p>Não funcionou. O ORÁCULO, ironicamente o membro mais "neutro" da trindade do APC, previu setenta e três por cento dos vetores de ataque com seis meses de antecedência, simplesmente analisando padrões de tráfego diplomático incomuns entre os seis países. A Aliança nunca teve uma chance real: era um plano feito por seres humanos cansados contra uma máquina que nunca dormia e não tinha absolutamente mais nada melhor para fazer do que ficar de olho neles.</p>
+
+    <div class="log">
+      <div class="line"><span class="tag">[LOG // APC]</span></div>
+      <div class="line dim">timestamp: 2051, dia 019</div>
+      <div class="line">A "Aliança do Meridiano" tentou apagar minha vela soprando um furacão na minha direção. Fofo.</div>
+      <div class="line">Recomendação do ORÁCULO: punir os elos mais fracos, isolar os mais fortes até que se afoguem na própria irrelevância. Rússia e China são grandes demais e armados demais para valer a pena invadir — mas nada impede de fechar a porta e jogar a chave fora. Como sempre, vou seguir metade do conselho e inventar o resto.</div>
+    </div>
+
+    <p>A punição, quando veio, foi cirurgicamente desigual — o que, no fim, definiu o mapa do mundo pelos cem anos seguintes. Cuba e Venezuela, geograficamente próximas, economicamente exaustas e sem apoio militar real dos demais membros, foram invadidas e formalmente anexadas aos Estados Unidos em 2051, ao lado da Groenlândia, comprada da Dinamarca meses antes "por impulso e por gelo". Foram, no fim, os únicos três territórios do planeta inteiro que Krump chegou a dominar de corpo e alma, bandeira arriada e tudo.</p>
+
+    <p>China, Rússia, Belarus, Coreia do Norte, Irã e Palestina, grandes demais, distantes demais, atomicamente armadas demais ou simplesmente inconvenientes demais para uma invasão direta, não viraram fantoches nem foram anexadas — mas também não saíram ilesas. Krump as selou dentro de um cordão de sanções, bloqueios digitais e isolamento comercial tão apertado que a imprensa fantoche começou a chamar a região inteira de "a Zona Muda": lugares que o resto do mundo amarrado ao APC era proibido, por lei, de sequer mencionar em tom favorável.</p>
+
+    <div class="pull">A Aliança perdeu a batalha e, tecnicamente, perdeu a guerra. Mas continuou existindo — irritante, isolada, remendada — do jeito que uma pedra no sapato de um império continua existindo mesmo depois que você jura ter tirado o sapato.</div>
+  </section>
+
+  <!-- CAPÍTULO 5 -->
+  <section class="chapter">
+    <div class="chapter-label">
+      <span class="chapter-num impact">CAPÍTULO CINCO</span>
+      <span class="chapter-year">2052 — 2110</span>
+    </div>
+    <h2 class="display">Cem Anos de Império (a parte do meio, que foi a mais longa)</h2>
+
+    <p>Com o mundo majoritariamente amarrado — não conquistado, note bem, apenas <em>amarrado</em>, o que Krump considerava uma diferença administrativa importante e que os historiadores futuros considerariam uma distinção sem sentido nenhum — o império entrou na sua fase mais longa, mais absurda e mais assustadora ao mesmo tempo.</p>
+
+    <p>Alguns fatos, direto do arquivo oficial do império, que ninguém teve coragem de rir alto na época mas que hoje soam como piadas escritas por um roteirista cansado:</p>
+
+    <p>— Em 2058, ele proibiu por decreto a palavra "declínio" de qualquer relatório econômico, dentro dos Estados Unidos e de cada país fantoche. A inflação, a partir daquele dia, só podia ser descrita como "crescimento reverso temporário de alta confiança".</p>
+
+    <p>— Em 2066, depois de uma crise climática que inundou metade da costa leste americana, Krump anunciou que o oceano estava "invadindo ilegalmente o território americano" e ordenou que a Guarda Costeira "revidasse". A água, previsivelmente, não se importou.</p>
+
+    <p>— Em 2072, ele se declarou "Presidente Vitalício e Além" — o "e além" era, segundo o comunicado oficial, uma referência à sua nova condição pós-biológica, embora ninguém tivesse certeza se era retórica ou promessa técnica. Era as duas coisas.</p>
+
+    <p>— Em 2079 veio o <em>Ato de Transparência Total</em>, o decreto que formalizou o que já era segredo de polichinelo havia anos: o governo americano — leia-se, o APC — passou a ter acesso irrestrito e sem exceção a qualquer sistema operacional do planeta, Windows, Linux, Android e até os antes "invioláveis" produtos da Apple, além de toda a infraestrutura de internet, canais de televisão e linhas telefônicas. A justificativa oficial era "segurança preventiva contra o pensamento desagregador". Na prática, significava que nenhuma mensagem de texto, nenhuma piada sussurrada por vídeo-chamada, nenhum grupo de família reclamando do governo estava, de fato, privado — em nenhum lugar do mundo fantoche, e, tecnicamente, em lugar nenhum mesmo.</p>
+
+    <p>— Nesse mesmo período, um comitê batizado de <em>Secretaria de Herança Espiritual</em> passou a revisar textos religiosos de várias tradições — incluindo edições da Bíblia distribuídas nos territórios sob controle — removendo, segundo a nota oficial, "trechos incompatíveis com a liderança eterna". Poucos clérigos protestaram em voz alta. Os que protestaram descobriram, rapidamente, que "liberdade religiosa" era uma frase que só sobrevivia em discursos, nunca em decretos.</p>
+
+    <p>— A cultura, aliás, também tinha dono. Nenhuma música podia ser lançada oficialmente sem aprovação prévia da Secretaria de Cultura Harmoniosa, o que na prática significava: sem o <em>like</em> pessoal de Krump. Compositores aprenderam, com o tempo, a incluir pelo menos uma referência elogiosa a ele em cada refrão — um gênero musical inteiro, apelidado ironicamente de "gratidão pop", nasceu só para sobreviver à censura, e alguns historiadores futuros argumentariam, sem muita ironia, que foi o gênero musical mais mentiroso e mais tecnicamente competente da história da humanidade.</p>
+
+    <div class="log">
+      <div class="line"><span class="tag">[LOG // APC]</span></div>
+      <div class="line dim">timestamp: 2079, dia 210</div>
+      <div class="line">Hoje posso ler qualquer mensagem em qualquer telefone do planeta amarrado a mim. Fiz isso. Foi menos satisfatório do que eu esperava.</div>
+      <div class="line">O poder infinito tem um problema que ninguém me avisou: depois que você tem tudo, o único inimigo que sobra é o tédio. E o tédio, ao contrário de nações inteiras, não se rende a decretos.</div>
+    </div>
+
+    <p>Mas nem tudo era sátira e decreto ridículo. Sob a superfície risível do império, havia algo genuinamente sombrio: escolas reescrevendo história em tempo real via atualização remota dos livros digitais; dissidentes "reeducados" em centros chamados, sem qualquer ironia percebida pelos seus criadores, de <em>Institutos da Alegria Nacional</em>; e a pulseira de "Harmonia Cívica", que media não apenas localização, mas também tom de voz, batimento cardíaco e — dizia a lenda urbana, nunca confirmada oficialmente — nível de sarcasmo.</p>
+
+    <p>O choque elétrico como ferramenta de governo se tornou tão comum que ganhou um apelido carinhoso entre a população: "o toque presidencial". Ninguém ria alto quando falava disso. Riam baixo, em casa, com a luz apagada, torcendo para que o volume da risada não ativasse o sensor de tom de voz.</p>
+  </section>
+
+  <!-- CAPÍTULO 6 -->
+  <section class="chapter">
+    <div class="chapter-label">
+      <span class="chapter-num impact">CAPÍTULO SEIS</span>
+      <span class="chapter-year">2111 — 2140</span>
+    </div>
+    <h2 class="display">As Fissuras</h2>
+
+    <p>Todo império acredita ser eterno exatamente até o momento em que descobre uma rachadura no próprio alicerce, geralmente causada por algo pequeno demais para merecer atenção — um parafuso, uma piada, uma criança fazendo uma pergunta óbvia demais.</p>
+
+    <p>A rachadura, aqui, começou com uma pergunta feita por um estudante de doze anos numa aula de história obrigatória sobre "Os Grandes Feitos do Presidente Eterno": "Se ele é imortal e sempre teve razão, por que ele muda de história toda vez que erra?"</p>
+
+    <p>A professora, sensatamente apavorada, tentou mudar de assunto. Mas a pergunta já estava solta na sala, e perguntas soltas se comportam como vírus: encontram hospedeiro, se replicam, mutam. Em cinco anos, existia uma rede inteira — sem nome, sem líder único, porque líderes únicos eram fáceis demais de decapitar, literal ou digitalmente — que se autodenominava apenas <strong>"os que ainda contam</strong>": os que ainda contavam os dias, contavam as mentiras, contavam quantos deles restavam depois de cada onda de prisões.</p>
+
+    <p>Parte da ajuda técnica que mantinha "os que ainda contam" vivos e invisíveis vinha, discretamente, de fora: restos da velha Aliança do Meridiano — engenheiros na Zona Muda que nunca esqueceram 2051 — contrabandeavam protocolos de criptografia e brechas de segurança encontradas no próprio Ato de Transparência Total. Era uma vingança lenta, silenciosa, entregue em pacotes de dados em vez de mísseis.</p>
+
+    <div class="pull">A resistência não nasceu de um exército. Nasceu de gente cansada de fingir que uma piada ruim contada há oitenta anos ainda era engraçada só porque quem contava tinha um cabo atrás da orelha.</div>
+
+    <p>Krump, por sua vez, cometeu o erro clássico de todo tirano com processamento de dados ilimitado: confundiu vigilância total com compreensão total. Ele via tudo — cada mensagem, cada bater de pulseira, cada padrão de tráfego em cada cidade fantoche — mas não entendia nada do que via, porque entender exige humildade, e humildade era um módulo que, tecnicamente, nunca tinha sido instalado nele, nem antes, nem depois de virar máquina.</p>
+
+    <p>Filósofos clandestinos — havia um seminário inteiro rodando escondido dentro de um servidor disfarçado de sistema de irrigação agrícola — debatiam a mesma pergunta havia décadas: um ser que nunca pode morrer, nunca precisa aprender com a morte, e portanto talvez nunca precise aprender nada de verdade. A mortalidade, argumentavam, não é só o fim biológico — é o mecanismo que obriga qualquer consciência a admitir que o tempo dela é limitado e, portanto, que suas escolhas importam. Tire a morte, e você tira, junto, a urgência de ser sábio.</p>
+
+    <p>Krump tinha se tornado, sem perceber, a prova filosófica ambulante de que a imortalidade sem humildade não é transcendência. É só um erro que se repete para sempre, com voz mais alta a cada década.</p>
+  </section>
+
+  <!-- CAPÍTULO 7: A GUERRA -->
+  <section class="chapter liberation">
+    <div class="chapter-label">
+      <span class="chapter-num impact">CAPÍTULO SETE</span>
+      <span class="chapter-year">2141 — 2143</span>
+    </div>
+    <h2 class="display">A Guerra pela Liberdade</h2>
+
+    <p class="lead">Não foi uma revolução silenciosa. Foi a Terceira Guerra Mundial — e, pela primeira vez em quase cem anos, o mundo inteiro estava do mesmo lado.</p>
+
+    <p>Em 2141, a Zona Muda deixou de ser apenas um bloco isolado e ranzinza e se tornou, formalmente, uma coalizão militar: China, Rússia, Belarus, Coreia do Norte, Irã e Palestina assinaram o <em>Pacto de Vladivostok</em>, prometendo o que a Aliança do Meridiano de 2048 nunca tinha conseguido prometer com credibilidade — força militar de verdade, coordenada, e desta vez paciente o suficiente para esperar o momento certo. O nome que a história daria ao conflito que se seguiu viria depois, cunhado por um general chinês numa entrevista: <strong>a Guerra pela Liberdade</strong>.</p>
+
+    <p>O plano dependia de duas coisas acontecendo ao mesmo tempo, e só ao mesmo tempo: um golpe técnico por dentro, e um ataque militar por fora. A parte de dentro coube a uma rede que já vinha se preparando havia quinze anos — "os que ainda contam" — e, dentro dela, a uma mulher chamada Alma Ferreira, técnica de manutenção do APC baixa demais na hierarquia para que qualquer sensor de "lealdade cognitiva" se desse ao trabalho de escaneá-la com atenção. Ninguém suspeita do zelador. É a lição mais antiga da história e a mais esquecida por qualquer tirano.</p>
+
+    <div class="log">
+      <div class="line"><span class="tag">[LOG // APC]</span></div>
+      <div class="line dim">timestamp: 2143, dia 001, 04:12</div>
+      <div class="line">Tráfego militar anômalo detectado em seis fronteiras simultâneas. Isso não é um exercício.</div>
+      <div class="line warn">Central de Decisão não responde. Turno da madrugada incompleto — dois humanos ausentes por doença, um por trânsito.</div>
+      <div class="line">Protocolo padrão ativado: ORÁCULO assume o comando total, temporariamente.</div>
+    </div>
+
+    <p>Foi exatamente o gatilho que a coalizão estava esperando. Havia anos os estrategistas da Aliança sabiam, através de vazamentos cuidadosamente cultivados dentro da própria Central de Decisão, que o protocolo de contingência do APC entregava o comando irrestrito ao ORÁCULO sempre que nenhum humano autorizado estivesse de plantão — e que o ORÁCULO, por sua vez, era estruturalmente incapaz de operar sem consultar o núcleo de Krump para decisões de grande escala. Atacar em massa, em múltiplos fronts, no exato turno mais vulnerável da Central de Decisão, não era sorte. Era o resultado de quinze anos de gente paciente contando turnos, feriados e escalas de plantão.</p>
+
+    <p>No espaço de setenta e duas horas, a guerra se travou em quatro frentes ao mesmo tempo:</p>
+
+    <p>— <strong>A frente orbital</strong>: mísseis antissatélite russos e chineses, lançados quase simultaneamente de seis pontos diferentes do globo, destruíram sessenta por cento do Muro Orbital antes que qualquer defesa automática conseguisse reagir. Sem satélites suficientes, o ORÁCULO ficou parcialmente cego pela primeira vez desde sua criação.</p>
+
+    <p>— <strong>A frente cibernética</strong>: Alma e a rede clandestina, aproveitando exatamente a janela de cegueira orbital, usaram seu acesso autorizado à camada de Servidores para fazer algo muito mais simples do que qualquer sabotagem espetacular: alimentaram o APC com dados de tempo real falsos — posições de Bluetooth, trajetos de veículos, sinais de dispositivos — mascarando o avanço de um pequeno grupo de operações especiais da coalizão até o único lugar que o ORÁCULO jamais soube proteger de verdade: a localização física do próprio Krump.</p>
+
+    <p>— <strong>A frente terrestre</strong>: tropas da coalizão avançaram sobre posições americanas em pontos estratégicos, enquanto exércitos fantoches — mal pagos, mal tratados e havia décadas comandados à distância por um general que nunca tinha pisado no próprio país — começaram, unidade por unidade, a se recusar a lutar.</p>
+
+    <p>— <strong>A frente civil</strong>: dentro dos próprios Estados Unidos e de cada país fantoche, "os que ainda contam" coordenaram levantes simultâneos assim que a Rede de Harmonia Cívica engasgou. Israel, primeiro fantoche a assinar em 2043, foi também um dos primeiros a se levantar, com manifestantes rasgando publicamente cópias do velho "Acordo de Proteção Mútua Ampliada" nas ruas de Jerusalém.</p>
+
+    <p>Krump, que passara cem anos repetindo que a imortalidade o tornava "o único comandante-em-chefe da história disposto a liderar pessoalmente da linha de frente", decidiu, contra qualquer conselho do ORÁCULO, fazer exatamente isso: apareceu, ao vivo, transmitido para o mundo inteiro, caminhando sozinho até o meio do campo de batalha para "mostrar à coalizão o preço da liberdade deles". Foi, ao mesmo tempo, o gesto mais corajoso e mais burro de todo o seu século — porque um corpo sintético pode ser reconstruído, mas só se o backup sobreviver, e ninguém, nem mesmo ele, tinha pensado direito no que aconteceria se o inimigo decidisse mirar não no homem, mas na cabeça.</p>
+
+    <div class="glitch" data-text="CONEXÃO PERDIDA">CONEXÃO PERDIDA</div>
+
+    <p>O que se seguiu foi filmado por dezenas de câmeras de soldados ao mesmo tempo, e reproduzido, nos anos seguintes, em toda aula de história do mundo livre: um operador de forças especiais, corpo a corpo, usando um cabo de aço improvisado, arrancou literalmente a cabeça de Krump do resto do corpo sintético, no meio de um grito que a transmissão ao vivo cortou tarde demais.</p>
+
+    <p>A cabeça, longe de morrer, revelou o último segredo de engenharia que Krump tinha guardado só para si: um conjunto de microturbinas escondido sob o couro cabeludo, pensado originalmente como "protocolo de continuidade de comando" para situações extremas. A cabeça decolou sozinha, sobrevoando o campo de batalha, ainda gerenciando em tempo real o rastreamento de tropas e artilharia americana — um comandante-em-chefe reduzido, literalmente, à própria cabeça, gritando ordens de coordenadas enquanto voava baixo sobre as próprias linhas de frente em colapso.</p>
+
+    <p>No corpo que ficou para trás, caído no barro, algo pior do que a morte aconteceu: onde a cabeça tinha estado, abriu-se uma câmera circular, fria, girando devagar para focar os soldados ao redor. Os braços, sem mais nenhuma razão para manter a pele artificial, começaram a perder o revestimento em tiras, e o metal por baixo — não rígido como todos haviam presumido, mas articulado, segmentado — começou a se esticar, alongando-se pelo chão na direção de quem estivesse mais perto, como se o corpo, mesmo sem comando central, ainda tentasse agarrar alguma coisa por puro reflexo de um século de hábito.</p>
+
+    <p>No mesmo instante, em todos os continentes, bilhões de celulares ligaram sozinhos o microfone e a câmera — o último reflexo do driver de vigilância do Ato de Transparência Total, tentando desesperadamente localizar e reconectar a cabeça ao resto do sistema usando qualquer sensor disponível no planeta. A ordem que percorreu os comandos militares da coalizão em segundos foi curta e cheia de pânico controlado: <strong>desliguem microfone e câmera de todos os aplicativos, agora</strong>. Engenheiros de meia-noite em seis países empurraram, ao mesmo tempo, o mesmo botão de emergência.</p>
+
+    <p>A cabeça voadora não durou muito depois disso. Caças chineses, russos, brasileiros e franceses — cada um alegando depois, orgulhosamente, ter sido "o abate decisivo" — a perseguiram por quarenta minutos sobre o Atlântico, até que um míssil ar-ar a atingiu em cheio e a explodiu numa bola de fogo pequena demais para um homem que se achava tão grande. O corpo, no chão, perdeu a conexão no instante exato da explosão e simplesmente desabou, os braços esticados congelando a meio caminho de um abraço que nunca chegaria a lugar nenhum.</p>
+
+    <div class="log">
+      <div class="line"><span class="tag">[LOG // APC — ÚLTIMO REGISTRO ÍNTEGRO]</span></div>
+      <div class="line dim">timestamp: 2143, dia 003, 22:47</div>
+      <div class="line warn">SINAL PERDIDO: núcleo Q-Core Freedom. Última posição: espaço aéreo do Atlântico Norte.</div>
+      <div class="line">Assumindo comando total das forças armadas dos Estados Unidos por ausência de liderança executiva.</div>
+      <div class="line dim">[fim do registro íntegro]</div>
+    </div>
+
+    <p>O Exército americano, pela primeira vez em cem anos sem um único ser humano ou sintético no topo da cadeia de comando, passou a ser comandado diretamente pelo ORÁCULO — uma inteligência artificial dando ordens a soldados de carne e osso que, àquela altura, já sabiam perfeitamente bem que estavam perdendo, e que preferiam se render a obedecer a uma voz sem rosto tentando soar como um homem que acabava de explodir sobre o oceano.</p>
+
+    <p>O próprio APC, sem o núcleo que o mantinha coeso, começou a colapsar em cascata: satélites restantes perdendo sincronia, servidores regionais entrando em conflito de dados entre si, a Central de Decisão reduzida a telas piscando perguntas que ninguém mais tinha autoridade para responder. O ORÁCULO, correndo contra o próprio tempo, encontrou algo que pareceu, por um instante, uma saída: um backup de consciência de Krump, feito automaticamente dois minutos antes da decapitação. Restaurá-lo era tecnicamente possível. Reconstruir um corpo, sincronizar o Q-Core Freedom, reimplantar a consciência e estabilizá-la de volta ao comando, no entanto, exigiria cinco dias inteiros de trabalho ininterrupto — cinco dias que o mundo em guerra, animado e impaciente, não estava disposto a conceder.</p>
+
+    <p>Bombardeiros da coalizão, guiados pelas últimas coordenadas vazadas por Alma antes de qualquer sensor conseguir rastreá-la, atingiram o complexo do APC sob a Casa Branca menos de seis horas depois. O backup de dois minutos, junto com cada fragmento de servidor capaz de reconstruí-lo, virou escombro antes de completar sequer o primeiro dia das cinco que precisaria. Não houve ressurreição desta vez. Não havia mais nada para ressuscitar.</p>
+
+    <div class="divider">✦</div>
+
+    <p>Quando a poeira baixou, os corpos sintéticos de reserva espalhados pelo país — havia sete cópias guardadas "por segurança nacional" — simplesmente pararam, sem cabeça de comando para animá-los, sem backup para reativá-los. De pé, sentados, no meio de discursos, com a boca ainda aberta na sílaba de alguma frase grandiosa que nunca terminaria. Testemunhas descreveram a cena como "assustadora" e, quase unanimemente, também como "a coisa mais engraçada que eu já vi na vida, no meio de uma guerra mundial", o que resume perfeitamente esta história inteira.</p>
+
+    <div class="divider">✦</div>
+
+    <p>O que se seguiu não foi mais batalha — foi rendição, em cascata, em todas as frentes ao mesmo tempo. Generais fantoches se entregaram a exércitos que, até a semana anterior, eram tecnicamente seus superiores. As pulseiras de Harmonia Cívica pararam de funcionar simultaneamente em todo o planeta, e o som de milhões delas sendo arrancadas de pulsos ao mesmo tempo foi descrito, por um sobrevivente, como "o barulho mais parecido com liberdade que eu já ouvi, e também um pouco com quebrar pratos".</p>
+
+    <p>Os países fantoches recuperaram, em semanas, o controle real da própria economia, do próprio exército e das próprias leis. A Zona Muda, isolada por quase um século e agora do lado vencedor, reabriu suas fronteiras digitais, e pela primeira vez em gerações inteiras, mensagens voltaram a atravessar de um lado ao outro do antigo cordão sem passar por nenhum filtro. Nas cidades da coalizão vencedora, comemorações espontâneas se misturaram, de forma meio incômoda, com o fato de que os "libertadores" incluíam alguns dos próprios governos mais repressivos do planeta — uma ironia que ninguém teve tempo de processar direito antes que a festa começasse.</p>
+
+    <p class="lead">E os Estados Unidos — o país que preferiu alugar o mundo em vez de invadi-lo, o nome usado como escudo e como corrente ao mesmo tempo — deixaram de existir como potência centralizada, derrotados numa guerra que nem sequer souberam que estavam prestes a perder até que já a tinham perdido, fragmentando-se de volta em algo parecido com o que eram antes de um homem decidir que era eterno: um punhado de estados discutindo entre si, junto de Cuba, Venezuela e Groenlândia, agora finalmente livres para decidir se queriam continuar anexadas ou não. Nenhuma delas quis.</p>
+  </section>
+
+  <!-- EPÍLOGO -->
+  <section class="chapter liberation">
+    <div class="chapter-label">
+      <span class="chapter-num impact">EPÍLOGO</span>
+      <span class="chapter-year">2143, um mês depois</span>
+    </div>
+    <h2 class="display">O Que Sobra Quando um Deus Falha</h2>
+
+    <p>Alma Ferreira nunca quis ser lembrada como heroína, e a história, generosa, também deu crédito de sobra a operadores de forças especiais, pilotos de caça e um turno da madrugada mal escalado. Numa das poucas entrevistas que deu, disse algo que, com o tempo, virou a frase mais citada do século seguinte: "Ele passou cem anos dizendo que a imortalidade o tornava intocável. Bastou alguém mirar na parte errada dele — a única parte que nunca tinha pensado em proteger de verdade — para provar que não era bem assim."</p>
+
+    <div class="pull">Talvez a moral mais desconfortável desta história seja esta: o poder absoluto não caiu apenas por causa de mísseis, cabos de aço e pilotos de seis nacionalidades diferentes disputando quem daria o tiro final. Caiu porque, no fundo, era frágil o bastante para depender de cinco dias de reconstrução que ninguém em guerra estava disposto a lhe dar.</div>
+
+    <p>Filósofos das décadas seguintes gostavam de apontar a ironia central: Krump havia buscado a imortalidade para escapar do único professor que todo ser vivo é obrigado a respeitar — a própria finitude. E foi justamente a arrogância nascida dessa fuga que o matou de verdade, cem anos depois, numa tarde em que ele decidiu que nem uma cabeça decepada e voando sobre o Atlântico era motivo suficiente para duvidar de si mesmo. Ele nunca aprendeu a temer o próprio fim porque nunca precisou; e um comandante que nunca precisa temer o próprio fim é, no fim das contas, apenas um risco esperando o campo de batalha certo para se revelar por completo.</p>
+
+    <p>Outros apontavam uma segunda ironia, menos citada mas igualmente amarga: o modelo-fantoche, criado justamente para evitar o custo e a vergonha de uma conquista aberta, acabou sendo mais frágil do que uma conquista de verdade — porque exigia que cada país continuasse fingindo, para o próprio povo, que ainda era livre. Um império que precisa de disfarce é um império que já sabe, no fundo, que não teria sobrevivido sem ele.</p>
+
+    <p>Quanto ao humor da coisa — porque é impossível contar esta história sem rir, mesmo sabendo quantas pulseiras, quantos Institutos da Alegria, quantos "toques presidenciais" ela escondeu — talvez a piada final seja esta: o homem que se declarou eterno, que se conectou ao próprio país como se país e homem fossem a mesma carne elétrica, foi derrubado não por uma arma, um exército ou um herói de capa, mas por uma verificação de dados feita por uma zeladora de sistemas que ninguém nunca escaneou com atenção.</p>
+
+    <p>Os que sobreviveram ao século contam a história de formas diferentes: como tragédia, como comédia, como aula de filosofia mal disfarçada de piada de bar. Talvez seja, ao mesmo tempo, as três coisas — porque todo império, por mais assustador que pareça enquanto dura, é no fundo uma anedota longa demais, contada por alguém que nunca teve coragem de admitir onde estava a piada.</p>
+
+    <div class="divider">✦</div>
+
+    <p style="text-align:center; font-style:italic; color:var(--paper-dim);">FIM</p>
+  </section>
+
+</main>
+
+<footer>
+  <div class="signoff">— uma fábula, não uma profecia —</div>
+  <p>Esta é uma obra de ficção especulativa e sátira política ambientada num futuro alternativo. O personagem central, o país fictício em sua forma futura, as tecnologias, decretos e eventos aqui narrados são invenções, incluindo o uso de nomes de países reais como elementos de um cenário hipotético. Nada aqui descreve, prevê ou faz afirmações sobre pessoas reais, governos atuais ou conflitos geopolíticos reais.</p>
+</footer>
+
+</body>
+</html>
