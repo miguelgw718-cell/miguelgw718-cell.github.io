@@ -17,6 +17,8 @@
     --paper-dim: #b8b3a4;
     --teal: #2d5a4f;
     --teal-bright: #4a9683;
+    --violet: #9b7fd4;
+    --violet-bright: #b79bf0;
     line-height: 1.6;
   }
   *{box-sizing:border-box;}
@@ -29,6 +31,18 @@
     font-size:18px;
   }
   ::selection{ background:var(--rust); color:var(--paper); }
+
+  .tech{ color:var(--violet-bright); }
+  .tech-glow{
+    color:var(--violet-bright);
+    text-shadow:0 0 18px rgba(155,127,212,0.45);
+  }
+  .log.tech-log{
+    border-color:rgba(155,127,212,0.4);
+    border-left-color:var(--violet-bright);
+    color:#cdb8f5;
+  }
+  .log.tech-log .tag{ color:var(--violet-bright); }
 
   .display{ font-family:'Playfair Display', serif; }
   .impact{ font-family:'Bebas Neue', sans-serif; letter-spacing:0.06em; }
@@ -548,6 +562,10 @@
 
     <p>China, Rússia, Belarus, Coreia do Norte, Irã e Palestina, grandes demais, distantes demais, atomicamente armadas demais ou simplesmente inconvenientes demais para uma invasão direta, não viraram fantoches nem foram anexadas — mas também não saíram ilesas. Krump as selou dentro de um cordão de sanções, bloqueios digitais e isolamento comercial tão apertado que a imprensa fantoche começou a chamar a região inteira de "a Zona Muda": lugares que o resto do mundo amarrado ao APC era proibido, por lei, de sequer mencionar em tom favorável.</p>
 
+    <p>Nem todo país aceitou o modelo-fantoche sem criar um problema diplomático à parte, e nenhum caso ilustrou isso melhor do que a Alemanha. Quando Washington ofereceu seu próprio "Acordo de Proteção Mútua Ampliada" a Berlim, o governo alemão recusou — preferindo, depois de décadas de dependência energética e comercial já reconstruída com Moscou, se aproximar da Rússia em vez dos Estados Unidos. Krump, sem paciência nem criatividade para negociar uma saída elegante, resolveu o impasse do jeito mais preguiçoso possível: dividiu o país ao meio, reaproveitando a exata mesma linha de fronteira da Guerra Fria, "porque ninguém no Departamento de Estado tinha tempo de desenhar uma linha nova, e a antiga já estava nos mapas mesmo".</p>
+
+    <p>A Alemanha Ocidental assinou o acordo e virou fantoche como qualquer outro. A Alemanha Oriental se aliou à Rússia — nominalmente independente, com bandeira, parlamento e presidente próprios, mas militarmente dependente de Moscou para qualquer coisa além de policiamento local, e isolada dentro da Zona Muda junto com o resto da coalizão. As duas metades, separadas de novo pela mesma linha que a Guerra Fria já tinha desenhado uma vez, reviveram uma rivalidade que a geração dos avós achava ter enterrado de vez — postos de fronteira reconstruídos quase no mesmo lugar exato dos antigos, famílias divididas pela segunda vez em menos de um século, e um humor sombrio dos dois lados sobre "reencenar a história porque ninguém teve criatividade suficiente para inventar uma nova".</p>
+
     <div class="pull">A Aliança perdeu a batalha e, tecnicamente, perdeu a guerra. Mas continuou existindo — irritante, isolada, remendada — do jeito que uma pedra no sapato de um império continua existindo mesmo depois que você jura ter tirado o sapato.</div>
   </section>
 
@@ -592,6 +610,8 @@
     <p>— Em 2079 veio o <em>Ato de Transparência Total</em>, o decreto que formalizou o que já era segredo de polichinelo havia anos: o governo americano — leia-se, o APC — passou a ter acesso irrestrito e sem exceção a qualquer sistema operacional do planeta, Windows, Linux, Android e até os antes "invioláveis" produtos da Apple, além de toda a infraestrutura de internet, canais de televisão e linhas telefônicas. A justificativa oficial era "segurança preventiva contra o pensamento desagregador". Na prática, significava que nenhuma mensagem de texto, nenhuma piada sussurrada por vídeo-chamada, nenhum grupo de família reclamando do governo estava, de fato, privado — em nenhum lugar do mundo fantoche, e, tecnicamente, em lugar nenhum mesmo.</p>
 
     <p>— Em 2081, uma atualização de microcódigo obrigatória, empurrada silenciosamente para cada processador fabricado ou vendido dentro do território amarrado ao APC, deu ao ORÁCULO um acesso que ia muito além de qualquer sistema operacional: acesso direto ao próprio silício. A partir daquele ano, o ORÁCULO podia ler qualquer instrução em execução em qualquer processador do planeta, ler e escrever livremente na memória RAM, alterar instruções antes mesmo de elas serem executadas pelo processador, e inspecionar o conteúdo bruto de qualquer registrador — o nível mais baixo e mais íntimo de qualquer computador existente, o equivalente digital de conseguir ler o pensamento de alguém antes mesmo de esse pensamento virar palavra. Era, teoricamente, poder suficiente para reescrever o comportamento de cada máquina do mundo em tempo real, sem que absolutamente ninguém percebesse.</p>
+
+    <p>— Também em 2081, os céus de cada cidade do mundo amarrado ganharam companhia permanente: os <span class="tech-glow">drones-sentinela</span>, pequenos, movidos por hélices silenciosas o suficiente para não acordar ninguém à noite, equipados com microfone, câmera e um link de comunicação direto e contínuo com o APC. Eram controlados inteiramente por inteligência artificial — não pelo ORÁCULO em pessoa, ocupado demais administrando o resto do império, mas por uma versão simplificada e obediente dele, treinada só para voar, ouvir, gravar e nunca, jamais, ser notada. Crianças cresceram achando normal o silêncio roxo-metálico deles pairando sobre o quintal; foi só décadas depois, olhando fotos antigas do próprio céu, que muita gente percebeu o quanto aquele silêncio, na verdade, sempre tinha sido armado.</p>
 
     <p>— Nesse mesmo período, um comitê batizado de <em>Secretaria de Herança Espiritual</em> passou a revisar textos religiosos de várias tradições — incluindo edições da Bíblia distribuídas nos territórios sob controle — removendo, segundo a nota oficial, "trechos incompatíveis com a liderança eterna". Poucos clérigos protestaram em voz alta. Os que protestaram descobriram, rapidamente, que "liberdade religiosa" era uma frase que só sobrevivia em discursos, nunca em decretos.</p>
 
@@ -644,7 +664,7 @@
 
     <p class="lead">Não foi uma revolução silenciosa. Foi a Terceira Guerra Mundial — e, pela primeira vez em quase cem anos, o mundo inteiro estava do mesmo lado.</p>
 
-    <p>Em 2141, a Zona Muda deixou de ser apenas um bloco isolado e ranzinza e se tornou, formalmente, uma coalizão militar: China, Rússia, Belarus, Coreia do Norte, Irã e Palestina assinaram o <em>Pacto de Vladivostok</em>, prometendo o que a Aliança do Meridiano de 2048 nunca tinha conseguido prometer com credibilidade — força militar de verdade, coordenada, e desta vez paciente o suficiente para esperar o momento certo. O nome que a história daria ao conflito que se seguiu viria depois, cunhado por um general chinês numa entrevista: <strong>a Guerra pela Liberdade</strong>.</p>
+    <p>Em 2141, a Zona Muda deixou de ser apenas um bloco isolado e ranzinza e se tornou, formalmente, uma coalizão militar: China, Rússia, Belarus, Coreia do Norte, Irã, Palestina e a Alemanha Oriental assinaram o <em>Pacto de Vladivostok</em>, prometendo o que a Aliança do Meridiano de 2048 nunca tinha conseguido prometer com credibilidade — força militar de verdade, coordenada, e desta vez paciente o suficiente para esperar o momento certo. A própria Alemanha Ocidental, cansada de um século de fantoche, se juntou ao pacto meses depois, discretamente, e as duas metades do país — rivais havia quase um século, de novo — combateram lado a lado pela primeira vez desde antes da própria Guerra Fria. O nome que a história daria ao conflito que se seguiu viria depois, cunhado por um general chinês numa entrevista: <strong>a Guerra pela Liberdade</strong>.</p>
 
     <p>O plano dependia de duas coisas acontecendo ao mesmo tempo, e só ao mesmo tempo: um golpe técnico por dentro, e um ataque militar por fora. A parte de dentro coube a uma rede que já vinha se preparando havia quinze anos — "os que ainda contam" — e, dentro dela, a uma mulher chamada Alma Ferreira, técnica de manutenção do APC baixa demais na hierarquia para que qualquer sensor de "lealdade cognitiva" se desse ao trabalho de escaneá-la com atenção. Ninguém suspeita do zelador. É a lição mais antiga da história e a mais esquecida por qualquer tirano.</p>
 
@@ -784,6 +804,8 @@
     <p>— Os backdoors instalados em cada processador do mundo, desde a atualização de 2081, nunca foram totalmente removidos. Tecnicamente ainda existem, embutidos no silício de bilhões de máquinas antigas — só que, sem um ORÁCULO do outro lado para ativá-los, permanecem desligados para sempre, uma arma carregada que ninguém mais sabe como disparar e quase ninguém lembra que existe.</p>
 
     <p>— E, talvez o detalhe mais irônico de todos: algumas Cercas, isoladas havia tanto tempo que tinham desenvolvido hábitos e lideranças próprias, optaram por manter um governo local básico em vez de se fundir de imediato ao território principal — não por saudade do antigo regime, mas puro pragmatismo de quem não queria ser demolido de novo por outro processo de "unificação" decidido às pressas em capitais distantes. Décadas depois, alguns desses países ainda carregavam, em menor escala, a mesma cicatriz de divisão que Krump tinha desenhado — só que agora escolhida por quem vivia dos dois lados, em vez de imposta por quem nunca tinha posto os pés em nenhum deles.</p>
+
+    <p>— E a Alemanha, dividida em 2049 pela mesma linha reciclada da Guerra Fria, continua dividida até hoje — só que agora por escolha própria, não mais por decreto americano. Ocidental e Oriental, aliadas desde a Guerra pela Liberdade e vencedoras juntas, decidiram, num referendo conjunto realizado em 2147, que reunificar de novo seria apagar uma história recente demais para virar apenas um parágrafo de reconciliação apressada. As duas Alemanhas continuam separadas, cooperando em quase tudo, rivalizando amistosamente em futebol e em orgulho regional, e servindo, para o resto do mundo, como o lembrete mais visível de que nem toda cicatriz de império precisa ser fechada para deixar de doer.</p>
   </section>
 
   <!-- EPÍLOGO -->
