@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ilha Soberana</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0d1912;--panel:#12241a;--panel2:#17301f;--line:#2a4a34;--gold:#c9a24b;--text:#e9ebe4;--text-dim:#9db09f;--lake-l:#2f7191;
+padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);box-sizing:border-box;}
+*{box-sizing:border-box} html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--text);font-family:'Inter',sans-serif}
+h1,h2{font-family:'Cinzel',serif}
+::-webkit-scrollbar{width:8px} ::-webkit-scrollbar-thumb{background:var(--line);border-radius:4px}
+#setup{max-width:520px;margin:6vh auto;padding:26px 22px;background:var(--panel);border:1px solid var(--line);border-radius:10px}
+#setup h1{color:var(--gold);font-size:1.4rem;margin:0 0 4px}
+#setup p{color:var(--text-dim);font-size:.88rem;line-height:1.5}
+.pcount{display:flex;gap:10px;margin:16px 0}
+.pcount button{flex:1;padding:14px 0;background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:8px;font-family:'Cinzel',serif;font-size:1.1rem;cursor:pointer}
+.pcount button.sel{border-color:var(--gold);color:var(--gold);background:#1e3826}
+.nameRow{display:flex;gap:6px;margin-bottom:8px;align-items:center}
+.nameRow .dot{width:14px;height:14px;border-radius:50%;flex:none}
+.nameRow input{flex:1;background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:6px;padding:7px;font-size:.82rem}
+#startBtn{width:100%;padding:13px;background:var(--gold);border:none;border-radius:8px;color:#1a1408;font-weight:700;cursor:pointer;margin-top:10px}
+#game{display:none;padding:10px;max-width:1240px;margin:0 auto}
+header{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin-bottom:10px}
+header h1{color:var(--gold);font-size:1.1rem;margin:0}
+.players{display:flex;gap:6px;flex-wrap:wrap}
+.pcard{border:2px solid var(--line);border-radius:8px;padding:6px 10px;background:var(--panel);font-size:.72rem;min-width:126px}
+.pcard.active{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold)}
+.pcard.dead{opacity:.35}
+.pcard .nm{display:flex;align-items:center;gap:6px;font-weight:700;margin-bottom:2px}
+.pcard .ow{color:var(--text-dim);font-size:.68rem;margin-bottom:3px}
+.dot{width:11px;height:11px;border-radius:50%;display:inline-block}
+.pcard .stat{color:var(--text-dim);display:flex;justify-content:space-between}
+.layout{display:grid;grid-template-columns:1fr;gap:14px}
+@media(min-width:900px){.layout{grid-template-columns:1.35fr 1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:12px}
+.card h2{margin:0 0 10px;font-size:.95rem;color:var(--gold)}
+.boardWrap{perspective:1000px;overflow:auto;padding:14px 4px}
+#terr{display:grid;gap:2px;margin:0 auto;transform:rotateX(50deg) scale(1);transform-style:preserve-3d;width:min(100%,700px);transition:transform .15s}
+.tile{aspect-ratio:1;background:#264d33;border-radius:2px;position:relative;cursor:pointer;box-shadow:0 3px 0 rgba(0,0,0,.35)}
+.tile.dk{background:#1c3d28}
+.tile.sel{outline:2px solid var(--gold)}
+.tile.reach{outline:2px dashed #ffd76a}
+.tile .own{position:absolute;inset:0;border-radius:2px;opacity:.6}
+.cz{position:absolute;top:1px;left:2px;font-size:.5rem;font-weight:700;color:#fff;z-index:3;text-shadow:0 1px 2px #000}
+.peg{position:absolute;left:50%;bottom:14%;transform:translateX(-50%);width:30%;height:30%;border-radius:50%;box-shadow:0 2px 3px rgba(0,0,0,.55),inset 0 -2px 2px rgba(0,0,0,.3);z-index:2}
+.soldierWrap{position:absolute;left:50%;bottom:10%;transform:translateX(-50%);width:44%;height:44%;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.7rem;box-shadow:0 2px 3px rgba(0,0,0,.5);z-index:3}
+.b3d{position:absolute;top:10%;right:6%;width:36%;height:36%;border-radius:3px;box-shadow:0 3px 3px rgba(0,0,0,.5),inset 0 2px 2px rgba(255,255,255,.25),inset 0 -3px 3px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;font-size:.55rem;background:#8d8d8d;z-index:2}
+.b3d.ladder{left:6%;right:auto;width:20%}
+.b3d2{top:0;right:6%;transform:scale(.8)}
+.trackWrap{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:10px}
+.ttile{background:var(--lake-l);border-radius:6px;padding:8px 4px;text-align:center;font-size:.66rem;min-height:52px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;position:relative;border:1px solid #143847}
+.ttile.choice{background:#6a4fa0} .ttile.crisis{background:#a13c3c} .ttile.prison{background:#555} .ttile.bonus{background:#b8891f}
+.ttile .toks{display:flex;gap:2px;position:absolute;bottom:2px;flex-wrap:wrap;justify-content:center}
+.tk{width:9px;height:9px;border-radius:50%;border:1px solid #fff}
+.diceRow{display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+#dice{width:44px;height:44px;background:var(--panel2);border:1px solid var(--line);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;font-weight:700;color:var(--gold)}
+button.act{background:var(--panel2);border:1px solid var(--line);color:var(--text);padding:8px 11px;border-radius:7px;cursor:pointer;font-size:.76rem;font-weight:600}
+button.act:hover{border-color:var(--gold)}
+button.act:disabled{opacity:.35;cursor:not-allowed}
+button.primary{background:var(--gold);color:#1a1408;border:none}
+button.sel2{border-color:var(--gold);color:var(--gold)}
+#log{font-size:.74rem;color:var(--text-dim);max-height:100px;overflow-y:auto;line-height:1.5;border-top:1px solid var(--line);padding-top:8px;margin-top:8px}
+#eventPanel{display:none;background:#241436;border:1px solid #6a4fa0;border-radius:8px;padding:10px;margin-bottom:10px}
+#eventPanel .opts{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+#tilePanel .row{display:flex;justify-content:space-between;align-items:center;font-size:.78rem;margin-bottom:5px;color:var(--text-dim);gap:6px}
+#tilePanel .row b{color:var(--text)}
+.buildGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px}
+.buildGrid button{font-size:.66rem;padding:7px 3px}
+.taxRow{display:flex;align-items:center;gap:8px;margin-top:10px}
+.taxRow input{flex:1}
+.tradeForm{display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:.78rem;margin-top:6px}
+.tradeForm select,.tradeForm input{background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:5px;padding:5px}
+.tradeForm label{grid-column:1/3;color:var(--gold);font-weight:700;margin-top:4px}
+.popList{max-height:120px;overflow-y:auto;margin-top:8px;border-top:1px solid var(--line);padding-top:6px}
+.resGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;font-size:.68rem;margin-top:6px}
+.resGrid button{padding:6px 2px;font-size:.62rem}
+#winOverlay{display:none;position:fixed;inset:0;background:rgba(5,10,7,.92);z-index:50;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:20px}
+#winOverlay h1{color:var(--gold);font-size:2rem}
+.zoomRow{display:flex;gap:6px;justify-content:center;margin-bottom:6px}
+</style>
+</head>
+<body>
+<div id="setup">
+  <h1>Ilha Soberana</h1>
+  <p>Escolha quantas nações e dê nome ao seu país e a você mesmo.</p>
+  <div class="pcount" id="pcount"><button data-n="2">2</button><button data-n="3">3</button><button data-n="4">4</button></div>
+  <div id="nameInputs"></div>
+  <button id="startBtn">Fundar as nações</button>
+</div>
+<div id="winOverlay"><h1 id="winText"></h1><button class="act primary" onclick="location.reload()">Nova partida</button></div>
+<div id="game">
+  <header><h1>🏝️ Ilha Soberana</h1><div class="players" id="players"></div></header>
+  <div class="card" id="queue"></div>
+  <div class="card" id="pending"></div>
+  <div class="layout">
+    <div class="card">
+      <h2>Território — clique num quadrado, peça ou construção</h2>
+      <div class="zoomRow"><button class="act" onclick="zoom(-0.15)">－ Zoom</button><button class="act" onclick="zoom(0.15)">＋ Zoom</button></div>
+      <div class="boardWrap"><div id="terr"></div></div>
+      <div id="tilePanel"></div>
+    </div>
+    <div>
+      <div class="card">
+        <h2>Ilha Central (tabuleiro)</h2>
+        <div class="trackWrap" id="track"></div>
+        <div id="eventPanel"></div>
+        <div class="diceRow">
+          <div id="dice">?</div>
+          <button class="act primary" id="rollBtn">Rolar dados (obrigatório)</button>
+          <button class="act" id="endBtn">Terminar turno</button>
+        </div>
+        <div id="log"></div>
+      </div>
+      <div class="card">
+        <h2>Comércio entre países</h2>
+        <div class="tradeForm">
+          <label>Destinatário (precisa aceitar no turno dele):</label>
+          <select id="trTarget" style="grid-column:1/3"></select>
+          <label>Vou dar:</label>
+          <select id="trGiveRes"><option value="money">Dinheiro</option><option value="wood">Madeira</option><option value="stone">Pedra</option><option value="food">Comida</option><option value="medicine">Remédio</option><option value="iron">Ferro</option><option value="coal">Carvão</option><option value="leather">Couro</option></select>
+          <input id="trGiveAmt" type="number" placeholder="Quantidade" value="10">
+          <label>Em troca de:</label>
+          <select id="trGetRes"><option value="wood">Madeira</option><option value="money">Dinheiro</option><option value="stone">Pedra</option><option value="food">Comida</option><option value="medicine">Remédio</option><option value="iron">Ferro</option><option value="coal">Carvão</option><option value="leather">Couro</option></select>
+          <input id="trGetAmt" type="number" placeholder="Quantidade" value="10">
+          <button class="act primary" id="trBtn" style="grid-column:1/3">Propor troca</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+const N=14;
+const COLORS=['#c0392b','#2f6fb0','#d4a017','#5aa15a'];
+const CNAMES=['Ana','Bruno','Célia','Diego','Elena','Fábio','Gil','Helo','Ivo','Júlia','Léo','Marta','Nico','Olga','Paulo','Rita','Sofia','Tomás'];
+let players=[], tiles=[], track=[], pos=[], turn=0, sel=null, awaiting=false, prisonLock=false;
+let soldierSel=null, towerSel=null, buildQueue=[], pendingTrades=[], pendingAttack=null, zoomLvl=1;
+
+const TRACK_DEF=[{t:'start',label:'Praça Central',icon:'🏛️'},{t:'choice',label:'Decisão',icon:'⚖️'},{t:'crisis',label:'Escassez',icon:'🌾'},{t:'normal',label:'Estrada',icon:'·'},
+{t:'prison',label:'Prisão',icon:'⛓️'},{t:'choice',label:'Decisão',icon:'⚖️'},{t:'normal',label:'Estrada',icon:'·'},{t:'crisis',label:'Peste',icon:'☣️'},
+{t:'bonus',label:'Tesouro',icon:'💰'},{t:'normal',label:'Estrada',icon:'·'},{t:'prison',label:'Prisão',icon:'⛓️'},{t:'choice',label:'Decisão',icon:'⚖️'}];
+
+const CHOICE_POOL=[
+ {label:'Milícia',desc:'-50💰, recruta 1 soldado grátis',fn:p=>{if(p.money<50)return false;p.money-=50;p.spent+=50;const own=tiles.filter(t=>t.owner===turn&&t.pop.length>0&&!t.soldier);if(own.length){removeCitizen(own[0]);own[0].soldier=1;}return'Milícia recrutada.';}},
+ {label:'Agricultura',desc:'-30💰, +20🌾',fn:p=>{if(p.money<30)return false;p.money-=30;p.spent+=30;p.food+=20;return'Colheita reforçada: +20🌾.';}},
+ {label:'Loja gratuita',desc:'-40💰, loja aleatória',fn:p=>{if(p.money<40)return false;p.money-=40;p.spent+=40;const own=tiles.filter(t=>t.owner===turn&&!t.building);if(own.length){own[Math.floor(Math.random()*own.length)].building='shop';own[0].shopBy='gov';}return'Loja construída de graça.';}},
+ {label:'Expedição',desc:'-20💰, +40 madeira',fn:p=>{if(p.money<20)return false;p.money-=20;p.spent+=20;p.wood+=40;return'+40 madeira.';}},
+ {label:'Mineração',desc:'-20💰, +40 pedra',fn:p=>{if(p.money<20)return false;p.money-=20;p.spent+=20;p.stone+=40;return'+40 pedra.';}},
+ {label:'Festival',desc:'-10💰, +1 cidadão',fn:p=>{if(p.money<10)return false;p.money-=10;p.spent+=10;const own=tiles.filter(t=>t.owner===turn&&t.pop.length<8);if(own.length)addCitizen(own[Math.floor(Math.random()*own.length)]);return'+1 cidadão.';}},
+ {label:'Farmácia',desc:'-25💰, +5💊 (menos se houver escassez)',fn:p=>{if(p.money<25)return false;p.money-=25;p.spent+=25;p.medicine+=p.medPenalty>0?2:5;return'Remédios produzidos.';}},
+];
+
+document.querySelectorAll('#pcount button').forEach(b=>b.onclick=()=>{document.querySelectorAll('#pcount button').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');window.__n=+b.dataset.n;buildNameInputs(window.__n);});
+function buildNameInputs(n){const el=document.getElementById('nameInputs');el.innerHTML='';
+  for(let i=0;i<n;i++){const row=document.createElement('div');row.className='nameRow';
+    row.innerHTML=`<span class="dot" style="background:${COLORS[i]}"></span><input id="nat${i}" placeholder="Nome do país" value="País ${i+1}"><input id="own${i}" placeholder="Seu nome" value="Jogador ${i+1}">`;
+    el.appendChild(row);}}
+document.getElementById('startBtn').onclick=()=>start(window.__n||2);
+
+function randomName(){return CNAMES[Math.floor(Math.random()*CNAMES.length)]+' '+(1+Math.floor(Math.random()*99));}
+function addCitizen(t){t.pop.push({name:randomName(),money:15+Math.floor(Math.random()*25),happiness:50,sick:false,actions:8});t.citizens=t.pop.length;}
+function removeCitizen(t,idx){if(!t.pop.length)return;if(idx===undefined)idx=Math.floor(Math.random()*t.pop.length);t.pop.splice(idx,1);t.citizens=t.pop.length;}
+
+function start(n){
+  document.getElementById('setup').style.display='none'; document.getElementById('game').style.display='block';
+  document.getElementById('terr').style.gridTemplateColumns=`repeat(${N},minmax(20px,1fr))`;
+  for(let i=0;i<n;i++){const nat=(document.getElementById('nat'+i)?.value||'País '+(i+1)).trim()||'País '+(i+1);
+    const own=(document.getElementById('own'+i)?.value||'Jogador '+(i+1)).trim()||'Jogador '+(i+1);
+    players.push({name:nat,owner:own,color:COLORS[i],money:600,wood:30,stone:30,food:30,iron:0,coal:0,leather:0,medicine:0,tax:10,alive:true,milUsed:0,buildUsed:0,spent:0,taxIncome:0,foodPenalty:0,medPenalty:0,hasRolled:false});}
+  pos=players.map(()=>0); track=TRACK_DEF.map(t=>({...t}));
+  tiles=Array.from({length:N*N},()=>({owner:-1,pop:[],citizens:0,building:null,building2:null,soldier:0,ladder:false,shopBy:null,produce:'food',
+    res:{stone:150+Math.floor(Math.random()*150),iron:Math.random()<0.6?Math.floor(Math.random()*40):0,coal:Math.random()<0.5?Math.floor(Math.random()*35):0,leather:Math.random()<0.5?Math.floor(Math.random()*30):0}}));
+  const half=N/2; const quad=[[0,0],[0,half],[half,0],[half,half]];
+  for(let p=0;p<n;p++){const[r0,c0]=quad[p];for(let r=r0;r<r0+half;r++)for(let c=c0;c<c0+half;c++){const t=tiles[r*N+c];t.owner=p;addCitizen(t);addCitizen(t);}}
+  players[0].hasRolled=false;
+  renderAll(); log('Que a ilha prospere. '+n+' nações fundadas num tabuleiro '+N+'x'+N+'.');
+}
+function renderAll(){renderPlayers();renderTerr();renderTrack();renderTile();renderTradeSel();renderQueue();renderPending();}
+function renderPlayers(){const el=document.getElementById('players');el.innerHTML='';
+  players.forEach((p,i)=>{const d=document.createElement('div');d.className='pcard'+(i===turn?' active':'')+(!p.alive?' dead':'');
+  const trend=(p.taxIncome+0)-(p.spent||0)>=0?'📈':'📉';
+  d.innerHTML=`<div class="nm"><span class="dot" style="background:${p.color}"></span>${p.name}${!p.alive?' ☠️':''}</div>
+  <div class="ow">governado por ${p.owner}</div>
+  <div class="stat"><span>💰</span><b>${p.money} ${trend}</b></div>
+  <div class="stat"><span>🌲${p.wood} 🪨${p.stone} 🌾${p.food}</span></div>
+  <div class="stat"><span>🔩${p.iron} ⚫${p.coal} 🧵${p.leather} 💊${p.medicine}</span></div>
+  <div class="stat"><span>Imposto</span><b>${p.tax}%</b></div>`;el.appendChild(d);});}
+
+function manhattan(a,b){return Math.abs(Math.floor(a/N)-Math.floor(b/N))+Math.abs(a%N-b%N);}
+function pathClear(s,t){const rs=Math.floor(s/N),cs=s%N,rt=Math.floor(t/N),ct=t%N,dr=rt-rs,dc=ct-cs,dist=Math.abs(dr)+Math.abs(dc);
+  if(dist===0)return false; if(dist===1)return true;
+  if(dist===2){let mids=[];if(Math.abs(dr)===2)mids.push((rs+dr/2)*N+cs);else if(Math.abs(dc)===2)mids.push(rs*N+(cs+dc/2));else{mids.push(rs*N+ct);mids.push(rt*N+cs);}
+  return mids.some(m=>tiles[m]&&tiles[m].building!=='wall');} return false;}
+function reachable(from){const set=new Set();for(let i=0;i<tiles.length;i++){const d=manhattan(from,i);if(d>=1&&d<=2&&pathClear(from,i))set.add(i);}return set;}
+function zoom(d){zoomLvl=Math.max(.5,Math.min(2,zoomLvl+d));document.getElementById('terr').style.transform=`rotateX(50deg) scale(${zoomLvl})`;}
+
+function renderTerr(){const el=document.getElementById('terr');el.innerHTML='';const reach=soldierSel!==null?reachable(soldierSel):null;
+  tiles.forEach((t,i)=>{const r=Math.floor(i/N),c=i%N;const d=document.createElement('div');d.className='tile'+(((r+c)%2)?' dk':'')+(sel===i?' sel':'');
+  if(reach&&reach.has(i))d.className+=' reach'; if(towerSel!==null){const dd=manhattan(towerSel,i);if(dd>=1&&dd<=3)d.className+=' reach';}
+  if(t.owner>=0)d.innerHTML+=`<div class="own" style="background:${players[t.owner].color}"></div>`;
+  if(t.citizens>0)d.innerHTML+=`<span class="cz">${t.citizens}</span>`;
+  if(t.building)d.innerHTML+=`<div class="b3d">${bIcon(t)}</div>`;
+  if(t.building2)d.innerHTML+=`<div class="b3d b3d2">${bIcon2(t.building2)}</div>`;
+  if(t.ladder)d.innerHTML+=`<div class="b3d ladder">🪜</div>`;
+  if(t.soldier&&t.owner>=0)d.innerHTML+=`<div class="soldierWrap" style="background:${players[t.owner].color}">💂</div>`;
+  else if(t.citizens>0&&t.owner>=0)d.innerHTML+=`<div class="peg" style="background:${players[t.owner].color}"></div>`;
+  d.onclick=()=>clickTile(i); el.appendChild(d);});}
+function bIcon(t){if(t.building==='shop')return t.shopBy==='citizen'?'🏬':'🏪';return bIcon2(t.building);}
+function bIcon2(b){return{wall:'🧱',tower:'🗼',chest:'🎁',block:'🟫',shop:'🏪',farm:'🌾'}[b]||'';}
+
+function renderTrack(){const el=document.getElementById('track');el.innerHTML='';
+  track.forEach((t,i)=>{const d=document.createElement('div');d.className='ttile '+t.t;d.innerHTML=`<div>${t.icon}</div><div>${t.label}</div><div class="toks"></div>`;
+  const toks=d.querySelector('.toks');pos.forEach((p,pi)=>{if(p===i&&players[pi].alive){const k=document.createElement('div');k.className='tk';k.style.background=players[pi].color;toks.appendChild(k);}});el.appendChild(d);});}
+
+function clickTile(i){
+  const t=tiles[i]; const me=turn;
+  if(prisonLock){log('Você está preso! Resolva a fiança antes de agir.');return;}
+  if(towerSel!==null){const dist=manhattan(towerSel,i);
+    if(dist<1||dist>3){log('Fora do alcance da torre (3 blocos).');towerSel=null;renderAll();return;}
+    if(players[me].stone<5){log('Sem pedra suficiente para munição (5🪨).');towerSel=null;renderAll();return;}
+    players[me].stone-=5;
+    if(t.building2){t.building2=null;log('💥 A torre destruiu uma construção do andar de cima!');}
+    else if(t.building){const was=t.building;t.building=null;t.shopBy=null;log('💥 A torre destruiu um(a) '+was+'!');}
+    else log('Nada para destruir ali.');
+    towerSel=null;renderAll();return;}
+  if(soldierSel!==null){const from=tiles[soldierSel];
+    if(!(from.soldier>0&&from.owner===me)){soldierSel=null;renderAll();return;}
+    const dist=manhattan(soldierSel,i);
+    if(dist<1||dist>2){log('Fora do raio de ação do soldado (2 blocos).');soldierSel=null;renderAll();return;}
+    if(!pathClear(soldierSel,i)){log('🧱 Parede bloqueia o caminho — o soldado não passa.');soldierSel=null;renderAll();return;}
+    if(t.owner===me){from.soldier=0;t.soldier=1;log('Soldado se moveu dentro do território.');soldierSel=null;renderAll();return;}
+    if(t.building==='wall'){t.building=null;log('⚔️ Soldado derrubou uma parede!');soldierSel=null;renderAll();return;}
+    if(t.owner===-1&&t.citizens===0&&!t.soldier&&!t.building){t.owner=me;addCitizen(t);from.soldier=0;t.soldier=1;log(players[me].name+' ocupou terra neutra.');soldierSel=null;checkWin();renderAll();return;}
+    pendingAttack={from:soldierSel,to:i}; openAttackOptions(); return;}
+  sel=i; renderAll();
+}
+function openAttackOptions(){const el=document.getElementById('eventPanel');el.style.display='block';
+  el.innerHTML='<b>Ataque a território</b><div class="opts">'+
+  '<button class="act primary" onclick="resolveAttack(\'eat\')">Comer peça</button>'+
+  '<button class="act primary" onclick="resolveAttack(\'take\')">Tomar território</button>'+
+  '<button class="act primary" onclick="resolveAttack(\'both\')">Comer peça e tomar território</button>'+
+  '<button class="act" onclick="resolveAttack(\'cancel\')">Cancelar</button></div>';}
+function resolveAttack(mode){const me=turn;const p=players[me];const{from,to}=pendingAttack;const fromT=tiles[from],t=tiles[to];
+  if(mode!=='cancel'){
+    if(p.milUsed>=5){log('Limite de ações militares (5) atingido neste turno.');}
+    else{p.milUsed++;const loser=t.owner;
+      if(mode==='eat'||mode==='both'){ if(t.pop.length>0){removeCitizen(t);log('⚔️ Comeu um cidadão'+(loser>=0?' de '+players[loser].name:'')+'.');} else if(t.soldier){t.soldier=0;log('⚔️ Eliminou o soldado inimigo.');} }
+      if(mode==='take'||mode==='both'||(t.pop.length===0&&!t.soldier)){
+        t.owner=me; if(t.pop.length===0)addCitizen(t); t.soldier=1; fromT.soldier=0; p.wood+=5;p.stone+=5;
+        log(players[me].name+' tomou o território'+(loser>=0?' de '+players[loser].name:'')+'!'); checkElimination(loser); checkWin(); }
+    }
+  }
+  document.getElementById('eventPanel').style.display='none'; soldierSel=null; pendingAttack=null; renderAll();}
+
+function renderTile(){const el=document.getElementById('tilePanel');
+  if(sel===null){el.innerHTML='<p style="color:var(--text-dim);font-size:.82rem">Nenhum quadrado selecionado.</p>';return;}
+  const t=tiles[sel]; const me=turn; const mine=t.owner===me;
+  let h=`<div class="row"><span>Dono</span><b>${t.owner>=0?players[t.owner].name:'Neutro'}</b></div>
+  <div class="row"><span>Cidadãos</span><b>${t.citizens}</b></div>
+  <div class="row"><span>Construção</span><b>${t.building||'—'}${t.building2?(' + '+t.building2):''}${t.ladder?' + escada':''}</b></div>
+  <div class="row"><span>Soldado</span><b>${t.soldier?'Sim':'Não'}</b></div>`;
+  if(mine){const sick=t.pop.filter(c=>c.sick).length;
+    h+=`<div class="row"><span>Recursos aqui</span><b>🪨${t.res.stone} 🔩${t.res.iron} ⚫${t.res.coal} 🧵${t.res.leather}</b></div>
+    <div class="resGrid">
+      ${['food','wood','stone','iron','coal','leather'].map(r=>`<button class="act ${t.produce===r?'sel2':''}" onclick="setProduce('${r}')">${{food:'🌾 Comida',wood:'🌲 Madeira',stone:'🪨 Pedra',iron:'🔩 Ferro',coal:'⚫ Carvão',leather:'🧵 Couro'}[r]}</button>`).join('')}
+    </div>
+    <div class="buildGrid">
+      <button class="act" onclick="build('wall')">🧱 Parede (5🌲)</button>
+      <button class="act" onclick="build('ladder')">🪜 Escada (8🌲)</button>
+      <button class="act" onclick="build('tower')">🗼 Torre (15🪨)</button>
+      <button class="act" onclick="build('chest')">🎁 Baú (10🌲)</button>
+      <button class="act" onclick="build('block')">🟫 Bloco (10🪨)</button>
+      <button class="act" onclick="build('shop')">🏪 Loja (8🌲+8🪨)</button>
+      <button class="act" onclick="destroyBuilding()">🗑️ Destruir</button>
+      <button class="act" onclick="produceMed()">💊 Remédio (20💰)</button>
+      ${t.building==='tower'?'<button class="act primary" onclick="towerSel=sel;renderAll();log(\'Selecione um alvo em até 3 blocos.\')">🎯 Atirar bola</button>':''}
+      ${sick?'<button class="act" onclick="cure()">💊 Curar doente (1💊)</button>':''}
+    </div>
+    <div class="taxRow"><span style="font-size:.78rem">Imposto</span><input type="range" min="0" max="50" value="${players[me].tax}" oninput="setTax(this.value)"><b id="taxv">${players[me].tax}%</b></div>
+    <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">
+      <button class="act" ${t.citizens<1||t.soldier?'disabled':''} onclick="makeSoldier()">Recrutar soldado (💰100)</button>
+      <button class="act" ${!t.soldier?'disabled':''} onclick="soldierSel=sel;renderAll();log('Selecione um alvo até 2 blocos (paredes bloqueiam).')">Mover/Atacar (${players[me].milUsed}/5)</button>
+    </div><div style="font-size:.7rem;color:var(--text-dim);margin-top:4px">Construções neste turno: ${players[me].buildUsed}/8</div>`;}
+  if(t.pop.length) h+='<div class="popList">'+t.pop.map(c=>`<div class="row"><span>${c.name}${c.sick?' 🤒':''}</span><span>💰${c.money} 😊${c.happiness} ⚡${c.actions}</span></div>`).join('')+'</div>';
+  el.innerHTML=h;}
+
+function setProduce(r){if(prisonLock)return;tiles[sel].produce=r;renderAll();}
+function build(kind){if(prisonLock){log('Preso! Ações bloqueadas.');return;} const t=tiles[sel];const p=players[turn];
+  if(p.buildUsed>=8){log('Limite de construções (8) atingido neste turno.');return;}
+  const cost={wall:{wood:5},ladder:{wood:8},tower:{stone:15},chest:{wood:10},block:{stone:10},shop:{wood:8,stone:8},farm:{wood:3}}[kind];
+  for(const k in cost) if(p[k]<cost[k]){log('Recursos insuficientes para '+kind+'.');return;}
+  for(const k in cost) p[k]-=cost[k]; p.buildUsed++;
+  if(kind==='ladder'){t.ladder=true;log(players[turn].name+' construiu uma escada.');}
+  else if(t.ladder&&t.building&&!t.building2){t.building2=kind;log(players[turn].name+' construiu '+kind+' no andar de cima.');}
+  else{t.building=kind;if(kind==='shop')t.shopBy='gov';log(players[turn].name+' construiu '+kind+'.');}
+  renderAll();}
+function destroyBuilding(){if(prisonLock){log('Preso! Ações bloqueadas.');return;} const t=tiles[sel];const p=players[turn];
+  if(p.buildUsed>=8){log('Limite de construções atingido.');return;}
+  if(t.building2){t.building2=null;} else if(t.building){t.building=null;t.shopBy=null;} else if(t.ladder){t.ladder=false;} else {log('Nada para destruir.');return;}
+  p.buildUsed++; log('Construção destruída.'); renderAll();}
+function setTax(v){players[turn].tax=+v;document.getElementById('taxv').textContent=v+'%';renderPlayers();}
+function makeSoldier(){if(prisonLock){log('Preso! Ações bloqueadas.');return;} const t=tiles[sel];const p=players[turn];if(p.money<100||t.citizens<1)return;
+  p.money-=100;p.spent+=100;removeCitizen(t);t.soldier=1;log(players[turn].name+' recrutou um soldado.');renderAll();}
+function cure(){const t=tiles[sel];const p=players[turn];const sick=t.pop.filter(c=>c.sick);if(!sick.length||p.medicine<1)return;
+  p.medicine--;sick[0].sick=false;log('Cidadão curado.');renderAll();}
+function produceMed(){if(prisonLock)return;const p=players[turn];if(p.money<20)return;p.money-=20;p.spent+=20;p.medicine+=p.medPenalty>0?1:2;log('Remédio produzido com dinheiro.');renderAll();}
+
+function renderTradeSel(){const s=document.getElementById('trTarget');s.innerHTML='';
+  players.forEach((p,i)=>{if(i!==turn&&p.alive){const o=document.createElement('option');o.value=i;o.textContent=p.name;s.appendChild(o);}});}
+document.getElementById('trBtn').onclick=()=>{if(prisonLock){log('Preso! Ações bloqueadas.');return;}
+  const tgt=+document.getElementById('trTarget').value;
+  const giveRes=document.getElementById('trGiveRes').value,giveAmt=+document.getElementById('trGiveAmt').value;
+  const getRes=document.getElementById('trGetRes').value,getAmt=+document.getElementById('trGetAmt').value;
+  pendingTrades.push({from:turn,to:tgt,giveRes,giveAmt,getRes,getAmt});
+  log(players[turn].name+' propôs: vou dar '+giveAmt+' '+giveRes+' em troca de '+getAmt+' '+getRes+' de '+players[tgt].name+'.'); renderAll();};
+function renderPending(){const el=document.getElementById('pending');const mine=pendingTrades.filter(q=>q.to===turn);
+  if(!mine.length){el.innerHTML='<h2>Trocas pendentes</h2><p style="color:var(--text-dim);font-size:.8rem">Nenhuma troca aguardando sua resposta.</p>';return;}
+  el.innerHTML='<h2>Trocas pendentes</h2>'+mine.map(q=>{const real=pendingTrades.indexOf(q);
+    return `<div class="row"><span>${players[q.from].name} vai dar ${q.giveAmt} ${q.giveRes} em troca de ${q.getAmt} ${q.getRes} seu</span>
+    <span><button class="act" onclick="acceptTrade(${real})">Aceitar</button> <button class="act" onclick="declineTrade(${real})">Recusar</button></span></div>`;}).join('');}
+function acceptTrade(i){const q=pendingTrades[i];const a=players[q.from],b=players[q.to];
+  if(a[q.giveRes]<q.giveAmt||b[q.getRes]<q.getAmt){log('Troca cancelada: recursos insuficientes.');pendingTrades.splice(i,1);renderAll();return;}
+  a[q.giveRes]-=q.giveAmt;a[q.getRes]+=q.getAmt;b[q.getRes]-=q.getAmt;b[q.giveRes]+=q.giveAmt;
+  if(q.giveRes==='money')a.spent+=q.giveAmt; if(q.getRes==='money')b.spent+=q.getAmt;
+  log('Troca aceita entre '+a.name+' e '+b.name+'.');pendingTrades.splice(i,1);renderAll();}
+function declineTrade(i){log('Troca recusada.');pendingTrades.splice(i,1);renderAll();}
+
+document.getElementById('rollBtn').onclick=()=>{if(awaiting||players[turn].hasRolled)return;
+  players[turn].hasRolled=true;
+  const d=1+Math.floor(Math.random()*6);document.getElementById('dice').textContent=d;
+  const old=pos[turn];let np=(old+d)%12;
+  if(np<old){players[turn].money+=50;log(players[turn].name+' passou pela Praça Central: +50💰.');}
+  pos[turn]=np;renderTrack();handleTile(np);document.getElementById('rollBtn').disabled=true;};
+
+function handleTile(i){const t=track[i];const p=players[turn];const ev=document.getElementById('eventPanel');
+  if(t.t==='start'){p.money+=50;log(p.name+' recebeu 50💰.');}
+  else if(t.t==='bonus'){p.money+=100;log(p.name+' encontrou um tesouro: +100💰.');}
+  else if(t.t==='normal'){log(p.name+' seguiu viagem sem incidentes.');}
+  else if(t.t==='choice'){awaiting=true;ev.style.display='block';
+    const idx=[...Array(CHOICE_POOL.length).keys()].sort(()=>Math.random()-.5);const pick=[idx[0],idx[1]];
+    ev.innerHTML=`<b>Decisão em ${p.name}</b><div class="opts">`+pick.map(k=>{const o=CHOICE_POOL[k];return `<button class="act primary" onclick="resolveChoice(${k})">${o.label} — ${o.desc}</button>`;}).join('')+'</div>';}
+  else if(t.t==='prison'){awaiting=true;prisonLock=true;ev.style.display='block';
+    let btns=players.map((pl,idx)=>idx!==turn&&pl.alive?`<button class="act" onclick="payPrison(${idx})">Pagar 100💰 a ${pl.name}</button>`:'').join('');
+    ev.innerHTML=`<b>${p.name} foi detido! Todas as ações ficam bloqueadas.</b><div class="opts">${btns}</div>`;}
+  else if(t.t==='crisis'){
+    if(t.label==='Peste'){let infected=0;tiles.forEach(tt=>{if(tt.owner===turn)tt.pop.forEach(c=>{if(!c.sick&&Math.random()<0.3){c.sick=true;infected++;}});});
+      log('☣️ Peste contaminou '+infected+' cidadãos de '+p.name+'!');}
+    else{const type=Math.random()<0.5?'comida':'remédio';
+      if(type==='comida'){p.foodPenalty=5;log('🌾 Escassez de comida em '+p.name+': produção reduzida pelos próximos 5 turnos.');}
+      else{p.medPenalty=5;log('💊 Escassez de remédio em '+p.name+': produção reduzida pelos próximos 5 turnos.');}}}
+  renderAll();}
+function resolveChoice(k){const p=players[turn];const r=CHOICE_POOL[k].fn(p);log(r||'Recursos insuficientes — decisão ignorada.');closeEvent();}
+function payPrison(idx){const p=players[turn];const amt=Math.min(100,p.money);p.money-=amt;p.spent+=amt;players[idx].money+=amt;
+  log(p.name+' pagou '+amt+'💰 a '+players[idx].name+' e foi solto.');prisonLock=false;closeEvent();}
+function closeEvent(){awaiting=false;document.getElementById('eventPanel').style.display='none';renderAll();}
+
+document.getElementById('endBtn').onclick=()=>{
+  if(awaiting){log('Resolva o evento pendente antes de terminar o turno.');return;}
+  if(!players[turn].hasRolled){log('É obrigatório rolar o dado antes de terminar o turno.');return;}
+  tickEconomy(turn);
+  do{turn=(turn+1)%players.length;}while(!players[turn].alive);
+  sel=null;soldierSel=null;towerSel=null;prisonLock=false;
+  document.getElementById('dice').textContent='?';document.getElementById('rollBtn').disabled=false;
+  players[turn].milUsed=0;players[turn].buildUsed=0;players[turn].spent=0;players[turn].hasRolled=false;
+  renderAll();log('— Turno de '+players[turn].name+' —');};
+
+function tickEconomy(pi){const p=players[pi];if(!p.alive)return;
+  let totalCitizens=0,taxSum=0,shops=0,sick=0; const myTiles=tiles.filter(t=>t.owner===pi);
+  const producesFood=myTiles.some(t=>t.produce==='food'&&t.pop.length>0);
+  myTiles.forEach(t=>{if(t.building==='shop')shops++;
+    const workers=t.pop.length;
+    if(workers>0){let base=workers*2;
+      if(t.produce==='food'){let amt=base+(t.building==='farm'?6:0);if(p.foodPenalty>0)amt=Math.floor(amt*0.4);p.food+=amt;}
+      else if(t.produce==='wood'){p.wood+=base;}
+      else{const take=Math.min(base,t.res[t.produce]||0);t.res[t.produce]=(t.res[t.produce]||0)-take;p[t.produce]+=take;}}
+    t.pop.forEach(c=>{totalCitizens++;c.actions=8;
+      const earn=2+Math.floor(Math.random()*4);c.money+=earn;c.actions--;const tax=Math.round(earn*(p.tax/100));c.money-=tax;p.money+=tax;taxSum+=tax;
+      let dhTax=p.tax<=20?2:p.tax<=28?0:-3; let dhFood=producesFood?2:-3;
+      c.happiness=Math.max(0,Math.min(100,c.happiness+Math.round((dhTax+dhFood)/2)));
+      if(c.sick){sick++;if(Math.random()<0.12)c.dead=true;else if(Math.random()<0.3){const healthy=t.pop.filter(o=>!o.sick&&o!==c);if(healthy.length&&Math.random()<0.4)healthy[Math.floor(Math.random()*healthy.length)].sick=true;}}});
+    t.pop=t.pop.filter(c=>!c.dead);t.citizens=t.pop.length;});
+  p.money+=shops*8; p.taxIncome=taxSum+shops*8;
+  if(p.foodPenalty>0)p.foodPenalty--; if(p.medPenalty>0)p.medPenalty--;
+  p.food-=totalCitizens;
+  if(p.food<0){const deaths=Math.min(3,Math.ceil(-p.food/3));p.food=0;
+    for(let k=0;k<deaths;k++){const owned=myTiles.filter(t=>t.pop.length>0);if(!owned.length)break;removeCitizen(owned[Math.floor(Math.random()*owned.length)]);}
+    if(deaths)log('🌾 Fome atinge '+p.name+': '+deaths+' cidadão(s) morreram de fome.');}
+  else{ if(p.food<totalCitizens){myTiles.forEach(t=>t.pop.forEach(c=>{if(p.food<totalCitizens&&c.money>=5&&c.actions>0&&Math.random()<0.3){c.money-=5;c.actions--;p.food+=1;}}));}
+    if(p.food>totalCitizens+5&&Math.random()<0.5){const owned=myTiles.filter(t=>t.pop.length<8);if(owned.length)addCitizen(owned[Math.floor(Math.random()*owned.length)]);}}
+  myTiles.forEach(t=>{t.pop.slice().forEach(c=>{if(c.happiness<20&&Math.random()<0.15){
+    let target=null;
+    if(!producesFood){const cands=players.filter((o,oi)=>oi!==pi&&o.alive&&tiles.some(tt=>tt.owner===oi&&tt.produce==='food'&&tt.pop.length>0));if(cands.length)target=cands[Math.floor(Math.random()*cands.length)];}
+    if(!target){const others=players.filter((o,oi)=>oi!==pi&&o.alive&&o.tax<p.tax);if(others.length)target=others.sort((a,b)=>a.tax-b.tax)[0];}
+    if(target){const ti=players.indexOf(target);const targetTiles=tiles.filter(tt=>tt.owner===ti);
+      if(targetTiles.length){removeCitizen(t,t.pop.indexOf(c));const dest=targetTiles[Math.floor(Math.random()*targetTiles.length)];addCitizen(dest);dest.pop[dest.pop.length-1].happiness=50;
+        log('😠 Um cidadão infeliz de '+p.name+' migrou para '+target.name+'.');}}}});});
+  myTiles.forEach(t=>{const realIdx=tiles.indexOf(t);
+    if(p.money<100&&!t.building&&p.wood>=8&&p.stone>=8&&t.pop.length>0&&!buildQueue.some(q=>q.tile===realIdx)){buildQueue.push({player:pi,tile:realIdx,kind:'shop',cost:{wood:8,stone:8},byCitizen:true});}
+    else if(!t.building&&t.pop.length>1&&Math.random()<0.15&&!buildQueue.some(q=>q.tile===realIdx)){const opts=['wall','chest','block'];const kind=opts[Math.floor(Math.random()*opts.length)];
+      const cost={wall:{wood:5},chest:{wood:10},block:{stone:10}}[kind]; if(Object.keys(cost).every(k=>p[k]>=cost[k]))buildQueue.push({player:pi,tile:realIdx,kind,cost});}});
+  const stillOwns=tiles.some(t=>t.owner===pi);
+  if(totalCitizens===0){p.alive=false;tiles.forEach(t=>{if(t.owner===pi){t.owner=-1;t.soldier=0;}});log('☠️ Toda a população de '+p.name+' morreu ou partiu — a nação desapareceu!');}
+  else log(p.name+' — turno encerrado ('+totalCitizens+' cidadãos, '+sick+' doentes).');
+  checkWin();}
+
+function renderQueue(){const el=document.getElementById('queue');const mine=buildQueue.filter(q=>q.player===turn);
+  if(!mine.length){el.innerHTML='<h2>Pedidos de construção dos cidadãos</h2><p style="color:var(--text-dim);font-size:.8rem">Nenhum pedido pendente.</p>';return;}
+  el.innerHTML='<h2>Pedidos de construção dos cidadãos</h2>'+mine.map(q=>{const real=buildQueue.indexOf(q);
+    return `<div class="row"><span>Território #${q.tile+1} quer construir <b>${q.kind}</b></span><span><button class="act" onclick="approveQueue(${real})">Aprovar</button> <button class="act" onclick="denyQueue(${real})">Negar</button></span></div>`;}).join('');}
+function approveQueue(i){const q=buildQueue[i];const p=players[q.player];const t=tiles[q.tile];
+  for(const k in q.cost) if(p[k]<q.cost[k]){log('Recursos insuficientes.');buildQueue.splice(i,1);renderAll();return;}
+  for(const k in q.cost) p[k]-=q.cost[k]; t.building=q.kind; if(q.kind==='shop')t.shopBy=q.byCitizen?'citizen':'gov'; buildQueue.splice(i,1);
+  log('Pedido aprovado: '+q.kind+' no território #'+(q.tile+1)+'.'); renderAll();}
+function denyQueue(i){buildQueue.splice(i,1);log('Pedido negado.');renderAll();}
+
+function log(m){const l=document.getElementById('log');const d=document.createElement('div');d.textContent=m;l.prepend(d);}
+function checkElimination(loserIdx){if(loserIdx<0||!players[loserIdx]||!players[loserIdx].alive)return;
+  const stillOwns=tiles.some(t=>t.owner===loserIdx); if(stillOwns)return;
+  players[loserIdx].alive=false; const winner=players[turn];
+  winner.money+=players[loserIdx].money;winner.wood+=players[loserIdx].wood;winner.stone+=players[loserIdx].stone;winner.food+=players[loserIdx].food;winner.medicine+=players[loserIdx].medicine;winner.iron+=players[loserIdx].iron;winner.coal+=players[loserIdx].coal;winner.leather+=players[loserIdx].leather;
+  players[loserIdx].money=0;players[loserIdx].wood=0;players[loserIdx].stone=0;players[loserIdx].food=0;players[loserIdx].medicine=0;players[loserIdx].iron=0;players[loserIdx].coal=0;players[loserIdx].leather=0;
+  pendingTrades=pendingTrades.filter(q=>q.from!==loserIdx&&q.to!==loserIdx);
+  log('💀 '+players[loserIdx].name+' foi eliminada! '+winner.name+' herdou seus recursos.');}
+function checkWin(){const alive=players.filter(p=>p.alive);
+  if(alive.length===1){document.getElementById('winText').textContent='🏆 '+alive[0].name+' dominou a ilha inteira!';document.getElementById('winOverlay').style.display='flex';return;}
+  const owners=new Set(tiles.filter(t=>t.owner>=0).map(t=>t.owner));
+  if(owners.size===1&&!tiles.some(t=>t.owner===-1)){const w=[...owners][0];document.getElementById('winText').textContent='🏆 '+players[w].name+' dominou a ilha inteira!';document.getElementById('winOverlay').style.display='flex';}}
+</script>
+</body>
+</html>
