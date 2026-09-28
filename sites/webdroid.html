@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+<title>WebDroid</title>
+<style>
+:root{--bg:#d9dde6;--sf:#fbfbfd;--fg:#14161c;--mut:#6a7080;--ln:#e2e5ec;--ac:#2f6df6;--bt:#eef1f8;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#07080b;--sf:#1b1d23;--fg:#eceef4;--mut:#9096a6;--ln:#2a2d36;--bt:#262a34}}
+:root[data-theme="dark"]{--bg:#07080b;--sf:#1b1d23;--fg:#eceef4;--mut:#9096a6;--ln:#2a2d36;--bt:#262a34}
+*{box-sizing:border-box}html,body{height:100%;margin:0}
+body{background:var(--bg);font:14px/1.4 system-ui,"Segoe UI",Roboto,sans-serif;display:flex;justify-content:center;align-items:center;color:var(--fg)}
+#phone{position:relative;width:100%;max-width:400px;height:100%;max-height:820px;background:#0d0f14;overflow:hidden;display:flex;flex-direction:column;border-radius:clamp(0px,4vw,28px)}
+#status{height:28px;flex:none;display:flex;justify-content:space-between;align-items:center;padding:0 14px;color:#fff;font-size:12px;z-index:50;cursor:pointer;background:rgba(0,0,0,.25)}
+#screen{flex:1;position:relative;overflow:hidden}
+#home{position:absolute;inset:0;background:linear-gradient(160deg,#1d3a8a,#6b2fb3 55%,#e0567a);padding:18px 10px;overflow:auto}
+#grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px 4px}
+.ic{display:flex;flex-direction:column;align-items:center;gap:4px;color:#fff;font-size:11px;text-align:center;cursor:pointer;user-select:none}
+.ic i{font-style:normal;width:54px;height:54px;border-radius:16px;background:rgba(255,255,255,.2);display:grid;place-items:center;font-size:28px;backdrop-filter:blur(6px)}
+#win{position:absolute;inset:0;display:none}#win.on{display:block}
+.app-root{position:absolute;inset:0;display:none;flex-direction:column;background:var(--sf);color:var(--fg);overflow:auto}
+#nav{height:46px;flex:none;display:flex;justify-content:space-around;align-items:center;background:#000;z-index:30}
+#nav button{background:none;border:0;color:#fff;font-size:20px;width:70px;height:40px;cursor:pointer}
+#recents{position:absolute;inset:0;background:rgba(10,12,18,.94);display:none;flex-direction:column;gap:10px;padding:14px;overflow:auto;z-index:20}#recents.on{display:flex}
+.card{background:var(--sf);color:var(--fg);border-radius:14px;padding:12px;display:flex;align-items:center;gap:10px;cursor:pointer}
+.card small{color:var(--mut)}.card .x{margin-left:auto}
+#shade{position:absolute;inset:0;padding-top:28px;background:rgba(12,14,20,.97);transform:translateY(-100%);transition:transform .25s;z-index:40;display:flex;flex-direction:column;color:#fff}
+#shade.on{transform:none}
+#shade .hd{padding:14px 16px;display:flex;justify-content:space-between;align-items:center}
+#nlist{flex:1;overflow:auto;padding:0 12px;display:flex;flex-direction:column;gap:8px}
+.n{background:#23262f;border-radius:14px;padding:10px 12px;cursor:pointer}.n small{color:#9aa0b0}
+#heads{position:absolute;left:10px;right:10px;top:34px;background:#2a2e3a;color:#fff;border-radius:16px;padding:10px 14px;z-index:45;transform:translateY(-140%);transition:transform .25s;cursor:pointer}#heads.on{transform:none}
+#toast{position:absolute;left:50%;bottom:70px;translate:-50% 20px;background:#333;color:#fff;padding:8px 14px;border-radius:20px;opacity:0;transition:.2s;z-index:55;pointer-events:none;max-width:90%}#toast.on{opacity:1;translate:-50% 0}
+#dlg{position:absolute;inset:0;background:rgba(0,0,0,.5);display:none;place-items:center;z-index:60}#dlg.on{display:grid}
+#dlg .box{background:var(--sf);color:var(--fg);border-radius:18px;padding:16px;width:85%}
+.bar{display:flex;gap:8px;align-items:center;padding:10px 12px;border-bottom:1px solid var(--ln);flex:none;flex-wrap:wrap}
+.list{flex:1;overflow:auto}
+.row{padding:12px;border-bottom:1px solid var(--ln);display:flex;align-items:center;gap:8px;cursor:pointer}
+.row small{color:var(--mut)}.row .x{margin-left:auto;padding:0 6px}
+button{background:var(--bt);color:var(--fg);border:0;border-radius:10px;padding:8px 12px;font:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--ac)}
+textarea,input:not([type=file]){background:var(--bt);color:var(--fg);border:1px solid var(--ln);border-radius:10px;padding:8px;font:13px ui-monospace,Consolas,monospace;width:100%}
+.c{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px}.c h1{font-size:64px;margin:0}
+</style></head><body>
+<div id="phone">
+ <div id="status"><span id="clock"></span><span id="badge"></span></div>
+ <div id="screen"><div id="home"><div id="grid"></div></div><div id="win"></div><div id="recents"></div></div>
+ <div id="nav"><button id="back" aria-label="Voltar">◀</button><button id="homeb" aria-label="Início">●</button><button id="rec" aria-label="Recentes">■</button></div>
+ <div id="shade"><div class="hd"><b>Notificações</b><button id="clr">Limpar tudo</button></div><div id="nlist"></div></div>
+ <div id="heads"></div><div id="toast"></div><div id="dlg"></div>
+</div>
+<script>
+const $=s=>document.querySelector(s);
+const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* ===== Sistema de arquivos virtual (persistido em localStorage) ===== */
+class FS{
+ constructor(){this.root={t:'d',c:{}};try{const s=localStorage.getItem('wd_fs');if(s)this.root=JSON.parse(s)}catch(e){}
+  if(!Object.keys(this.root.c).length)['sdcard/Documents','data/app'].forEach(p=>this.mkdir(p))}
+ _p(p){return p.split('/').filter(Boolean)}
+ _n(p){let n=this.root;for(const s of this._p(p)){if(n.t!=='d'||!(s in n.c))return null;n=n.c[s]}return n}
+ _par(p){const a=this._p(p),name=a.pop();return[this._n(a.join('/')),name]}
+ save(){try{localStorage.setItem('wd_fs',JSON.stringify(this.root))}catch(e){}}
+ exists(p){return !!this._n(p)}
+ stat(p){const n=this._n(p);if(!n)throw Error('ENOENT: '+p);return{isDir:n.t==='d',size:n.t==='f'?n.d.length:0,mtime:n.m}}
+ readdir(p){const n=this._n(p);if(!n||n.t!=='d')throw Error('ENOTDIR: '+p);return Object.keys(n.c).sort()}
+ readFile(p){const n=this._n(p);if(!n||n.t!=='f')throw Error('ENOENT: '+p);return n.d}
+ writeFile(p,d){const[a,name]=this._par(p);if(!a||a.t!=='d')throw Error('ENOENT: '+p);a.c[name]={t:'f',d:String(d),m:Date.now()};this.save()}
+ mkdir(p){let n=this.root;for(const s of this._p(p)){n.c[s]=n.c[s]||{t:'d',c:{},m:Date.now()};n=n.c[s]}this.save()}
+ rm(p){const[a,name]=this._par(p);if(a&&a.c&&a.c[name]){delete a.c[name];this.save()}}
+}
+
+/* ===== Classe base dos apps ===== */
+class AndroidApp{
+ constructor(sys,pid,root,manifest){this.sys=sys;this.pid=pid;this.root=root;this.manifest=manifest}
+ onCreate(){} onResume(){} onPause(){} onDestroy(){}
+ onBack(){return false} // retorne true para consumir o "voltar"
+}
+
+/* ===== Kernel ===== */
+const S={fs:new FS(),reg:{},procs:{},nextPid:100,fg:null,notifs:[]};
+S.parse=t=>{const m=typeof t==='string'?JSON.parse(t):t;
+ if(m.format!=='apkx/1')throw Error('format deve ser "apkx/1"');
+ for(const k of['id','name','main','code'])if(!m[k])throw Error('campo ausente: '+k);
+ m.permissions=m.permissions||[];m.icon=m.icon||'📦';m.version=m.version||'1.0';
+ new Function('AndroidApp',m.code+'\nreturn '+m.main);return m};
+S.install=m=>{S.fs.writeFile('/data/app/'+m.id+'.apkx',JSON.stringify(m));S.reg[m.id]=m;renderGrid()};
+S.uninstall=id=>{Object.values(S.procs).filter(p=>p.m.id===id).forEach(p=>S.kill(p.pid));S.fs.rm('/data/app/'+id+'.apkx');delete S.reg[id];renderGrid()};
+S.load=()=>{S.reg={};for(const f of S.fs.readdir('/data/app')){try{const m=S.parse(S.fs.readFile('/data/app/'+f));S.reg[m.id]=m}catch(e){console.warn(f,e)}}};
+
+S.api=p=>{const m=p.m,need=k=>{if(!m.permissions.includes(k))throw Error('Permissão negada: '+k)};
+ const fs={};['readFile','writeFile','readdir','mkdir','rm','exists','stat'].forEach(k=>fs[k]=(...a)=>(need('fs'),S.fs[k](...a)));
+ return{fs,pid:p.pid,manifest:m,toast:S.toast,prompt:S.prompt,confirm:S.confirm,
+  notify:o=>(need('notifications'),S.notify(m,o)),
+  proc:{
+   list:()=>(need('process'),Object.values(S.procs).map(q=>({pid:q.pid,name:q.m.name,workers:q.workers.length,uptime:Math.floor((Date.now()-q.start)/1000)}))),
+   kill:pid=>(need('process'),S.kill(pid)),
+   spawn:(fn,cb)=>{need('process');const src='const post=postMessage;('+fn.toString()+')(post);';
+    const w=new Worker(URL.createObjectURL(new Blob([src])));w.onmessage=e=>cb&&cb(e.data);p.workers.push(w);return w}},
+  apps:{list:()=>Object.values(S.reg),launch:id=>S.launch(id),
+   install:t=>{need('apps');const x=S.parse(t);S.install(x);return x},
+   uninstall:id=>{need('apps');S.uninstall(id)}}}};
+
+S.launch=id=>{const m=S.reg[id];if(!m)return;
+ let p=Object.values(S.procs).find(q=>q.m.id===id);
+ if(!p){const pid=S.nextPid++,root=document.createElement('div');root.className='app-root';$('#win').append(root);
+  p={pid,m,root,workers:[],start:Date.now()};S.procs[pid]=p;
+  try{const C=new Function('AndroidApp',m.code+'\nreturn '+m.main)(AndroidApp);p.inst=new C(S.api(p),pid,root,m);p.inst.onCreate()}
+  catch(e){S.toast(m.name+' parou: '+e.message);S.kill(pid);return}}
+ S.show(p)};
+S.show=p=>{if(S.fg&&S.fg!==p)S.pause();S.fg=p;
+ for(const q of Object.values(S.procs))q.root.style.display=q===p?'flex':'none';
+ $('#win').classList.add('on');$('#recents').classList.remove('on');try{p.inst.onResume()}catch(e){}};
+S.pause=()=>{if(S.fg)try{S.fg.inst.onPause()}catch(e){}};
+S.home=()=>{S.pause();S.fg=null;$('#win').classList.remove('on');$('#recents').classList.remove('on');$('#shade').classList.remove('on')};
+S.kill=pid=>{const p=S.procs[pid];if(!p)return;try{p.inst&&p.inst.onDestroy()}catch(e){}
+ p.workers.forEach(w=>w.terminate());p.root.remove();delete S.procs[pid];
+ if(S.fg===p){S.fg=null;$('#win').classList.remove('on')}renderRecents()};
+
+/* ===== UI do sistema ===== */
+S.toast=t=>{const e=$('#toast');e.textContent=t;e.classList.add('on');clearTimeout(S.tt);S.tt=setTimeout(()=>e.classList.remove('on'),2200)};
+S.dialog=(msg,def,isP)=>new Promise(r=>{const d=$('#dlg');
+ d.innerHTML='<div class="box"><p></p>'+(isP?'<input>':'')+'<div class="bar" style="border:0;padding:8px 0 0;justify-content:flex-end"><button data-o="0">Cancelar</button><button data-o="1">OK</button></div></div>';
+ d.querySelector('p').textContent=msg;const i=d.querySelector('input');if(i){i.value=def||'';setTimeout(()=>i.focus())}
+ d.classList.add('on');d.onclick=e=>{const o=e.target.dataset.o;if(o===undefined)return;d.classList.remove('on');r(o==='1'?(isP?i.value:true):(isP?null:false))}});
+S.prompt=(m,d)=>S.dialog(m,d,true);S.confirm=m=>S.dialog(m,'',false);
+S.notify=(m,o)=>{const n={id:Math.random(),app:m.name,icon:m.icon,appId:m.id,title:o.title||m.name,text:o.text||'',time:new Date()};
+ S.notifs.unshift(n);renderNotifs();
+ const h=$('#heads');h.innerHTML='<b>'+esc(n.icon+' '+n.title)+'</b><br>'+esc(n.text);h.dataset.app=m.id;h.classList.add('on');
+ clearTimeout(S.ht);S.ht=setTimeout(()=>h.classList.remove('on'),3000);return n.id};
+function renderNotifs(){$('#badge').textContent=S.notifs.length?'🔔 '+S.notifs.length:'';
+ $('#nlist').innerHTML=S.notifs.map(n=>'<div class="n" data-id="'+n.id+'"><small>'+esc(n.icon+' '+n.app+' · '+n.time.toLocaleTimeString().slice(0,5))+'</small><br><b>'+esc(n.title)+'</b><br>'+esc(n.text)+'</div>').join('')||'<small style="padding:8px">Sem notificações</small>'}
+$('#nlist').onclick=e=>{const el=e.target.closest('.n');if(!el)return;const n=S.notifs.find(x=>String(x.id)===el.dataset.id);
+ S.notifs=S.notifs.filter(x=>x!==n);renderNotifs();$('#shade').classList.remove('on');if(n)S.launch(n.appId)};
+$('#clr').onclick=()=>{S.notifs=[];renderNotifs()};
+$('#heads').onclick=e=>{e.currentTarget.classList.remove('on');S.launch(e.currentTarget.dataset.app)};
+$('#status').onclick=()=>$('#shade').classList.toggle('on');
+
+function renderGrid(){const g=$('#grid');g.innerHTML='';
+ Object.values(S.reg).forEach(m=>{const d=document.createElement('div');d.className='ic';d.innerHTML='<i>'+esc(m.icon)+'</i>'+esc(m.name);
+  let t;d.onpointerdown=()=>{t=setTimeout(async()=>{t=0;if(await S.confirm('Desinstalar '+m.name+'?'))S.uninstall(m.id)},700)};
+  d.onpointerup=d.onpointerleave=()=>{clearTimeout(t)};d.onclick=()=>{if(t!==0)S.launch(m.id)};g.append(d)})}
+function renderRecents(){const r=$('#recents');const l=Object.values(S.procs);
+ r.innerHTML=(l.map(p=>'<div class="card" data-id="'+p.m.id+'"><span style="font-size:24px">'+esc(p.m.icon)+'</span><div><b>'+esc(p.m.name)+'</b><br><small>PID '+p.pid+'</small></div><button class="x" data-k="'+p.pid+'">✖</button></div>').join('')||'<div style="color:#fff;margin:auto">Nenhum app aberto</div>')+(l.length?'<button id="kall">Fechar tudo</button>':'')}
+$('#recents').onclick=e=>{const k=e.target.dataset.k;if(k){S.kill(+k);return}if(e.target.id==='kall'){Object.keys(S.procs).forEach(p=>S.kill(+p));return}
+ const c=e.target.closest('.card');if(c)S.launch(c.dataset.id)};
+$('#back').onclick=()=>{const sh=$('#shade'),rc=$('#recents');
+ if(sh.classList.contains('on'))return sh.classList.remove('on');if(rc.classList.contains('on'))return rc.classList.remove('on');
+ if(S.fg){let used=false;try{used=S.fg.inst.onBack()}catch(e){}if(!used)S.kill(S.fg.pid)}};
+$('#homeb').onclick=S.home;
+$('#rec').onclick=()=>{renderRecents();$('#recents').classList.toggle('on')};
+setInterval(()=>{$('#clock').textContent=new Date().toLocaleTimeString().slice(0,5)},1000);$('#clock').textContent=new Date().toLocaleTimeString().slice(0,5);
+
+/* ===== Apps embutidos (mesmo formato .apkx dos apps de terceiros) ===== */
+const B=[
+{id:'wd.files',name:'Arquivos',icon:'📁',permissions:['fs','apps'],main:'Files',code:String.raw`class Files extends AndroidApp{
+ onCreate(){this.cwd='/sdcard';this.ed=null;this.render()}
+ join(n){return (this.cwd==='/'?'':this.cwd)+'/'+n}
+ render(){const fs=this.sys.fs,r=this.root;
+  if(this.ed){r.innerHTML='<div class="bar"><b>'+this.ed+'</b></div><textarea style="flex:1;border-radius:0"></textarea><div class="bar"><button data-a="save">Salvar</button><button data-a="close">Fechar</button></div>';
+   r.querySelector('textarea').value=fs.readFile(this.ed)}
+  else{let h='<div class="bar"><b>'+this.cwd+'</b></div><div class="list">';
+   if(this.cwd!=='/')h+='<div class="row" data-a="up">📁 ..</div>';
+   for(const n of fs.readdir(this.cwd)){const p=this.join(n),d=fs.stat(p).isDir;h+='<div class="row" data-p="'+p+'" data-d="'+(d?1:0)+'">'+(d?'📁':'📄')+' '+n+'<span class="x" data-del="'+p+'">🗑</span></div>'}
+   r.innerHTML=h+'</div><div class="bar"><button data-a="mkdir">+ Pasta</button><button data-a="new">+ Arquivo</button></div>'}
+  r.onclick=async e=>{const t=e.target,d=t.dataset,row=t.closest('.row');
+   if(d.del){if(await this.sys.confirm('Apagar '+d.del+'?')){fs.rm(d.del);this.render()}return}
+   if(d.a==='up'){this.cwd=this.cwd.replace(/\/[^\/]*$/,'')||'/';return this.render()}
+   if(d.a==='mkdir'){const n=await this.sys.prompt('Nome da pasta');if(n){fs.mkdir(this.join(n));this.render()}return}
+   if(d.a==='new'){const n=await this.sys.prompt('Nome do arquivo');if(n){fs.writeFile(this.join(n),'');this.render()}return}
+   if(d.a==='save'){fs.writeFile(this.ed,r.querySelector('textarea').value);return this.sys.toast('Salvo')}
+   if(d.a==='close'){this.ed=null;return this.render()}
+   if(row&&row.dataset.p){const p=row.dataset.p;
+    if(row.dataset.d==='1'){this.cwd=p;return this.render()}
+    if(p.endsWith('.apkx')){if(await this.sys.confirm('Instalar '+p+'?')){try{const m=this.sys.apps.install(fs.readFile(p));this.sys.toast(m.name+' instalado')}catch(x){this.sys.toast('Erro: '+x.message)}}return}
+    this.ed=p;this.render()}}}
+ onBack(){if(this.ed){this.ed=null;this.render();return true}if(this.cwd!=='/sdcard'&&this.cwd!=='/'){this.cwd=this.cwd.replace(/\/[^\/]*$/,'')||'/';this.render();return true}return false}}`},
+{id:'wd.installer',name:'Instalador',icon:'📦',permissions:['fs','apps'],main:'Installer',code:String.raw`class Installer extends AndroidApp{
+ onCreate(){this.render()}
+ render(){const a=this.sys.apps.list(),r=this.root;
+  r.innerHTML='<div class="bar"><b>Instalar pacote .apkx</b></div><div style="padding:10px;display:flex;flex-direction:column;gap:8px;overflow:auto"><textarea rows="9" placeholder="Cole o JSON do pacote"></textarea><div style="display:flex;gap:8px"><button id="ex">Exemplo</button><button id="up">Arquivo</button><button id="ok">Instalar</button><input type="file" hidden></div><b>Instalados</b>'+a.map(x=>'<div class="row" style="cursor:default">'+x.icon+' '+x.name+' <small>v'+x.version+'</small><span class="x" data-u="'+x.id+'">🗑</span></div>').join('')+'</div>';
+  const t=r.querySelector('textarea'),f=r.querySelector('input');
+  r.querySelector('#ex').onclick=()=>{t.value=JSON.stringify({format:'apkx/1',id:'com.exemplo.ola',name:'Olá',icon:'👋',version:'1.0',permissions:['fs','notifications'],main:'Ola',
+   code:['class Ola extends AndroidApp{','  onCreate(){','    this.root.innerHTML=\'<div class="c"><h2>Olá, mundo!</h2><button id="n">Notificar</button><button id="w">Gravar arquivo</button></div>\';','    this.root.querySelector("#n").onclick=()=>this.sys.notify({title:"Olá",text:"Vindo do app instalado"});','    this.root.querySelector("#w").onclick=()=>{this.sys.fs.writeFile("/sdcard/ola.txt","oi "+Date.now());this.sys.toast("Gravado")};','  }','}'].join('\n')},null,1)};
+  r.querySelector('#up').onclick=()=>f.click();f.onchange=()=>{const fr=new FileReader();fr.onload=()=>{t.value=fr.result};fr.readAsText(f.files[0])};
+  r.querySelector('#ok').onclick=()=>{try{const m=this.sys.apps.install(t.value);this.sys.toast(m.name+' instalado');this.render()}catch(e){this.sys.toast('Erro: '+e.message)}};
+  r.onclick=async e=>{const u=e.target.dataset.u;if(u&&await this.sys.confirm('Desinstalar '+u+'?')){this.sys.apps.uninstall(u);this.render()}}}}`},
+{id:'wd.tasks',name:'Processos',icon:'⚙️',permissions:['process'],main:'Tasks',code:String.raw`class Tasks extends AndroidApp{
+ onCreate(){this.t=setInterval(()=>this.render(),1000);this.render()}
+ onDestroy(){clearInterval(this.t)}
+ render(){const l=this.sys.proc.list();
+  this.root.innerHTML='<div class="bar"><b>Processos ('+l.length+')</b></div><div class="list">'+l.map(p=>'<div class="row" style="cursor:default">⚙ PID '+p.pid+' '+p.name+' <small>'+p.workers+' worker · '+p.uptime+'s</small><button class="x" data-k="'+p.pid+'">Encerrar</button></div>').join('')+'</div>';
+  this.root.onclick=e=>{const k=e.target.dataset.k;if(k)this.sys.proc.kill(+k)}}}`},
+{id:'wd.timer',name:'Worker',icon:'⏱️',permissions:['process','notifications'],main:'Timer',code:String.raw`class Timer extends AndroidApp{
+ onCreate(){this.root.innerHTML='<div class="c"><h1>0</h1><small>Um Web Worker conta em segundo plano</small><button>Notificar agora</button></div>';
+  this.h=this.sys.proc.spawn(function(post){var i=0;setInterval(function(){post(++i)},1000)},v=>{
+   const e=this.root.querySelector('h1');if(e)e.textContent=v;
+   if(v%15===0)this.sys.notify({title:'Worker',text:v+'s de execução'})});
+  this.root.querySelector('button').onclick=()=>this.sys.notify({title:'Olá',text:'Notificação de teste'})}}`},
+{id:'wd.notes',name:'Notas',icon:'📝',permissions:['fs','notifications'],main:'Notes',code:String.raw`class Notes extends AndroidApp{
+ onCreate(){const f='/sdcard/Documents/nota.txt',fs=this.sys.fs;
+  this.root.innerHTML='<textarea style="flex:1;border-radius:0"></textarea><div class="bar"><button>Salvar</button></div>';
+  const t=this.root.querySelector('textarea');if(fs.exists(f))t.value=fs.readFile(f);
+  this.root.querySelector('button').onclick=()=>{fs.writeFile(f,t.value);this.sys.toast('Salvo em '+f);this.sys.notify({title:'Nota salva',text:f})}}}`}
+];
+
+/* ===== Boot ===== */
+try{if(!S.fs.exists('/data/.init')){B.forEach(m=>S.install(S.parse(Object.assign({format:'apkx/1',version:'1.0'},m))));S.fs.writeFile('/data/.init','1')}}catch(e){console.error(e)}
+S.load();renderGrid();renderNotifs();
+setTimeout(()=>S.notify({name:'Sistema',icon:'🤖',id:'wd.tasks'},{title:'WebDroid pronto',text:'Toque para abrir o gerenciador de processos'}),800);
+</script>
+<style>
+#home{display:flex;flex-direction:column}#grid{margin-top:auto}#dbtn{margin:12px auto 0;background:rgba(255,255,255,.2);color:#fff}
+.wg{background:rgba(255,255,255,.18);backdrop-filter:blur(8px);color:#fff;border-radius:18px;padding:12px;margin-bottom:10px}
+#drawer{position:absolute;inset:0;background:rgba(10,12,18,.96);z-index:15;display:none;flex-direction:column;padding:12px;gap:14px;overflow:auto}#drawer.on{display:flex}
+#dgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px 4px}
+</style>
+<script>
+/* ===== v2: Activity / Service / Intent / Binder, JSC, /system, widgets ===== */
+class Activity extends AndroidApp{setContentView(h){this.root.innerHTML=h}$(s){return this.root.querySelector(s)}finish(){this.sys.finish()}}
+class Service{constructor(sys,pid,_,m){this.sys=sys;this.pid=pid;this.manifest=m}onCreate(){}onDestroy(){}}
+class Intent{constructor(o){Object.assign(this,o)}}
+class JSC{ // mistura de JS + C: tipos C, #include, printf, main(argc,argv)
+ static T='int|float|double|char|long|short|unsigned|string|bool';
+ static compile(s){const ex=[],T=JSC.T;
+  s=s.replace(/^\s*#include\s*[<"]([^>"]+)[>"]\s*$/gm,(_,n)=>'const '+n.replace(/\W.*$/,'')+'=JSC.lib("'+n+'");');
+  s=s.replace(new RegExp('\\b(?:'+T+'|void)\\b\\s*\\**\\s*(\\w+)\\s*\\(([^)]*)\\)\\s*\\{','g'),(_,n,p)=>{ex.push(n);return 'function '+n+'('+p.replace(new RegExp('\\b(?:'+T+')\\b\\s*\\**\\s*','g'),'').replace(/\[\]/g,'').replace(/^\s*void\s*$/,'')+'){'});
+  s=s.replace(new RegExp('\\b(?:'+T+')\\b\\s*\\**\\s*(\\w+)','g'),'let $1').replace(/\(\s*(?:int|float|double|char)\s*\)/g,'');
+  return s+'\nreturn {'+ex.join(',')+'};'}
+ static lib(n){JSC.c=JSC.c||{};return JSC.c[n]=JSC.c[n]||new Function('JSC','Math',JSC.compile(JSC.fs.readFile('/system/lib/'+n)))(JSC,Math)}
+ static run(src,args,out,fs){JSC.fs=fs;
+  const printf=(f,...a)=>out(String(f).replace(/%[-\d.]*[dsfc%]/g,m=>m==='%%'?'%':m.endsWith('d')?parseInt(a.shift()):m.endsWith('f')?Number(a.shift()).toFixed(+(m.match(/\.(\d)/)||[0,6])[1]):a.shift()).replace(/\n$/,''));
+  const e=new Function('printf','puts','fs','args','Math','JSC',JSC.compile(src))(printf,out,fs,args,Math,JSC);return e.main?e.main(args.length,args):undefined}}
+S.sc={};S.script=u=>S.sc[u]=S.sc[u]||new Promise((ok,no)=>{const e=document.createElement('script');e.src=u;e.onload=ok;e.onerror=()=>no(Error('falha ao carregar '+u));document.head.append(e)});
+S.choose=(t,o)=>new Promise(r=>{const d=$('#dlg');d.innerHTML='<div class="box"><b></b>'+o.map((x,i)=>'<div class="row" data-i="'+i+'">'+esc(x)+'</div>').join('')+'</div>';d.querySelector('b').textContent=t;d.classList.add('on');d.onclick=e=>{const i=e.target.closest('[data-i]');d.classList.remove('on');r(i?+i.dataset.i:-1)}});
+// classloader do formato apkx/2: code = dict de pacotes; apis = libs por URL com Proxy
+S.cl=async(m,p)=>{const src={},cache={};(function w(o,q){for(const k in o)typeof o[k]=='object'?w(o[k],q+k+'.'):src[q+k]=o[k]})(m.code,'');
+ for(const a of m.apis||[]){await S.script(a.url);cache[(a.pkg?a.pkg+'.':'')+a.name]=new Proxy(class{},{get:(t,k)=>window[a.global][k],construct:(t,x)=>new window[a.global](...x)})}
+ const ld=q=>{if(cache[q])return cache[q];let s=src[q];if(s==null)throw Error('classe não encontrada: '+q);const im=[];
+  s=s.replace(/^\s*import\s+([\w.]+)\s*;?/gm,(_,n)=>{im.push(n);return''});
+  return cache[q]=new Function('Activity','Service','Intent','sys',...im.map(n=>n.split('.').pop()),'return '+s)(Activity,Service,Intent,p.api,...im.map(ld))};
+ p.ld=ld};
+S.ensure=async id=>{const m=S.reg[id];let p=Object.values(S.procs).find(q=>q.m.id===id);if(p)return p;
+ const pid=S.nextPid++,root=document.createElement('div');root.className='app-root';$('#win').append(root);
+ p={pid,m,root,workers:[],start:Date.now(),stack:[],svcs:{}};S.procs[pid]=p;p.api=S.api(p);
+ try{if(typeof m.code=='object')await S.cl(m,p);else{const C=new Function('AndroidApp',m.code+'\nreturn '+m.main)(AndroidApp);p.inst=new C(p.api,pid,root,m);p.inst.onCreate()}}
+ catch(e){S.toast(m.name+' parou: '+e.message);S.kill(pid);throw e}return p};
+S.pushAct=(p,q,intent)=>{const C=p.ld(q),el=document.createElement('div');el.style.cssText='position:absolute;inset:0;display:flex;flex-direction:column;overflow:auto;background:var(--sf)';
+ const t=p.stack.at(-1);if(t){t.el.style.display='none';try{t.inst.onPause()}catch(e){}}
+ p.root.append(el);const inst=new C(p.api,p.pid,el,p.m);inst.intent=intent||{};p.stack.push({inst,el});p.inst=inst;inst.onCreate()};
+S.pop=p=>{const t=p.stack.pop();if(!t)return;try{t.inst.onDestroy()}catch(e){}t.el.remove();
+ if(!p.stack.length){p.inst=null;return S.kill(p.pid)}const n=p.stack.at(-1);n.el.style.display='flex';p.inst=n.inst;n.inst.onResume()};
+S.launch=async(id,intent)=>{try{const p=await S.ensure(id),v2=typeof p.m.code=='object';
+ if(v2&&(intent||!p.stack.length))S.pushAct(p,(intent&&intent.component)||p.m.main,intent);else if(!v2&&intent&&p.inst.onNewIntent)p.inst.onNewIntent(intent);S.show(p)}catch(e){console.warn(e)}};
+S.service=async(i,bind)=>{const p=await S.ensure(i.package||i._from);let s=p.svcs[i.component];
+ if(!s){s=p.svcs[i.component]=new(p.ld(i.component))(p.api,p.pid,null,p.m);s.onCreate()}
+ if(bind){const b=s.onBind?s.onBind(i):{};return new Proxy(b,{get:(t,k)=>typeof t[k]=='function'?(...a)=>Promise.resolve().then(()=>t[k](...a)):t[k]})}
+ s.onStartCommand&&s.onStartCommand(i);return s};
+S.start=async(i,from)=>{if(i.component)return S.launch(i.package||from,i);
+ const c=Object.values(S.reg).flatMap(m=>(m.filters||[]).filter(f=>f.action===i.action&&(!f.ext||f.ext.includes((i.data||'').split('.').pop()))).map(f=>({m,f})));
+ if(!c.length)return S.toast('Nenhum app disponível');
+ const k=c.length>1?await S.choose(i.action==='SEND'?'Compartilhar com':'Abrir com',c.map(x=>x.m.icon+' '+x.m.name)):0;
+ if(k>=0)S.launch(c[k].m.id,{...i,component:c[k].f.component})};
+S.kill=pid=>{const p=S.procs[pid];if(!p)return;const d=o=>{try{o.onDestroy&&o.onDestroy()}catch(e){}};
+ p.stack.forEach(x=>d(x.inst));Object.values(p.svcs).forEach(d);if(!p.stack.length&&p.inst)d(p.inst);
+ p.workers.forEach(w=>w.terminate());p.root.remove();delete S.procs[pid];if(S.fg===p){S.fg=null;$('#win').classList.remove('on')}renderRecents()};
+const a0=S.api;S.api=p=>{const m=p.m,b=a0(p),need=k=>{if(!m.permissions.includes(k))throw Error('Permissão negada: '+k)};
+ return Object.assign(b,{choose:S.choose,startActivity:i=>S.start(i,m.id),startService:i=>S.service({...i,_from:m.id}),bindService:i=>S.service({...i,_from:m.id},true),
+  stopService:i=>{const q=S.procs[p.pid],s=q&&q.svcs[i.component];if(s){s.onDestroy&&s.onDestroy();delete q.svcs[i.component]}},finish:()=>S.pop(p),
+  three:{load:()=>(need('graphics'),S.script('https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js').then(()=>THREE))},
+  jsc:{run:(s,a,o)=>JSC.run(s,a||[],o||(()=>{}),b.fs),lib:n=>JSC.lib(n)},
+  settings:{get:k=>S.cfg[k],set:(k,v)=>{need('settings');S.cfg[k]=v;S.saveCfg();S.applyCfg()},clearNotifs:()=>{need('settings');S.notifs=[];renderNotifs()},reset:()=>{need('settings');localStorage.clear();location.reload()}}})};
+const p0=S.parse;S.parse=t=>{const m=typeof t=='string'?JSON.parse(t):t;if(m.code&&typeof m.code=='object'){if(m.format!=='apkx/2')throw Error('format deve ser "apkx/2"');for(const k of['id','name','main'])if(!m[k])throw Error('campo ausente: '+k);m.permissions=m.permissions||[];m.icon=m.icon||'📦';m.version=m.version||'1.0';return m}return p0(m)};
+S.install=(m,d='/data/app')=>{S.fs.writeFile(d+'/'+m.id+'.apkx',JSON.stringify(m));S.reg[m.id]=m;renderGrid();renderWidgets()};
+S.uninstall=id=>{if(S.fs.exists('/system/app/'+id+'.apkx'))return S.toast('App do sistema');Object.values(S.procs).filter(p=>p.m.id===id).forEach(p=>S.kill(p.pid));S.fs.rm('/data/app/'+id+'.apkx');delete S.reg[id];renderGrid();renderWidgets()};
+S.load=()=>{S.reg={};for(const d of['/data/app','/system/app'])for(const f of S.fs.readdir(d)){try{const m=S.parse(S.fs.readFile(d+'/'+f));S.reg[m.id]=m}catch(e){console.warn(f,e)}}};
+/* config */
+S.cfg={theme:'auto',wall:0,pinned:['wd.files','wd.term','wd.config','wd.notes']};
+try{Object.assign(S.cfg,JSON.parse(S.fs.readFile('/data/config.json')))}catch(e){}
+S.saveCfg=()=>S.fs.writeFile('/data/config.json',JSON.stringify(S.cfg));
+const W=['linear-gradient(160deg,#1d3a8a,#6b2fb3 55%,#e0567a)','linear-gradient(160deg,#0f2027,#2c5364)','linear-gradient(160deg,#42275a,#734b6d)','linear-gradient(160deg,#134e5e,#71b280)'];
+S.applyCfg=()=>{const r=document.documentElement;S.cfg.theme==='auto'?r.removeAttribute('data-theme'):r.dataset.theme=S.cfg.theme;$('#home').style.background=W[S.cfg.wall%W.length]};
+/* notificações (excluir uma só) */
+function renderNotifs(){$('#badge').textContent=S.notifs.length?'🔔 '+S.notifs.length:'';
+ $('#nlist').innerHTML=S.notifs.map(n=>'<div class="n" data-id="'+n.id+'"><button data-d="'+n.id+'" style="float:right;padding:2px 8px">✕</button><small>'+esc(n.icon+' '+n.app)+'</small><br><b>'+esc(n.title)+'</b><br>'+esc(n.text)+'</div>').join('')||'<small style="padding:8px">Sem notificações</small>'}
+$('#nlist').onclick=e=>{const d=e.target.dataset.d;if(d){S.notifs=S.notifs.filter(x=>String(x.id)!==d);return renderNotifs()}
+ const el=e.target.closest('.n');if(!el)return;const n=S.notifs.find(x=>String(x.id)===el.dataset.id);S.notifs=S.notifs.filter(x=>x!==n);renderNotifs();$('#shade').classList.remove('on');if(n)S.launch(n.appId)};
+/* home, drawer, widgets */
+const ic=(m,el)=>{const d=document.createElement('div');d.className='ic';d.innerHTML='<i>'+esc(m.icon)+'</i>'+esc(m.name);let t;
+ d.onpointerdown=()=>{t=setTimeout(async()=>{t=0;const pin=S.cfg.pinned.includes(m.id),k=await S.choose(m.name,[pin?'Desafixar da tela inicial':'Fixar na tela inicial','Desinstalar']);
+  if(k==0){S.cfg.pinned=pin?S.cfg.pinned.filter(x=>x!=m.id):[...S.cfg.pinned,m.id];S.saveCfg();renderGrid()}if(k==1)S.uninstall(m.id)},600)};
+ d.onpointerup=d.onpointerleave=()=>clearTimeout(t);d.onclick=()=>{if(t===0)return;$('#drawer').classList.remove('on');S.launch(m.id)};el.append(d)};
+function renderGrid(){const g=$('#grid'),dg=$('#dgrid');if(!g||!dg)return;g.innerHTML=dg.innerHTML='';const q=($('#dq').value||'').toLowerCase();
+ S.cfg.pinned.forEach(i=>S.reg[i]&&ic(S.reg[i],g));Object.values(S.reg).filter(m=>m.name.toLowerCase().includes(q)).forEach(m=>ic(m,dg))}
+function renderWidgets(){const w=$('#widgets');if(!w)return;w.innerHTML='<div class="wg" id="wclock"></div>';S.wg=[];
+ for(const m of Object.values(S.reg)){if(!m.widget||typeof m.code!='string')continue;try{const C=new Function('AndroidApp',m.code+'\nreturn '+m.widget)(AndroidApp),el=document.createElement('div');el.className='wg';w.append(el);
+  const o=new C(S.api({pid:0,m,workers:[],start:Date.now(),svcs:{},stack:[]}));S.wg.push(()=>o.update(el))}catch(e){}}}
+setInterval(()=>{const d=new Date(),c=$('#wclock');if(c)c.innerHTML='<b style="font-size:38px">'+d.toLocaleTimeString().slice(0,5)+'</b><br>'+d.toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'});(S.wg||[]).forEach(f=>{try{f()}catch(e){}})},1000);
+const h0=S.home;S.home=()=>{$('#drawer').classList.remove('on');h0()};$('#homeb').onclick=S.home;
+$('#back').onclick=()=>{for(const e of[$('#shade'),$('#recents'),$('#drawer')])if(e.classList.contains('on'))return e.classList.remove('on');
+ const p=S.fg;if(p){let u=false;try{u=p.inst.onBack()}catch(e){}if(!u)p.stack.length?S.pop(p):S.kill(p.pid)}};
+/* apps novos e ajustes nos existentes */
+const P=(id,a,b)=>{const x=B.find(x=>x.id==id);x.code=x.code.replace(a,b)};
+P('wd.files',/if\(p\.endsWith[^\n]*\n\s*this\.ed=p;this\.render\(\)\}\}\}/,`const k=await this.sys.choose(p,['Editar','Abrir com…','Compartilhar','Instalar (.apkx)']);
+    if(k===0){this.ed=p;this.render()}
+    if(k===1)this.sys.startActivity({action:'VIEW',data:p});
+    if(k===2)this.sys.startActivity({action:'SEND',data:p,extras:{text:fs.readFile(p)}});
+    if(k===3){try{this.sys.toast(this.sys.apps.install(fs.readFile(p)).name+' instalado')}catch(x){this.sys.toast('Erro: '+x.message)}}}}}`);
+P('wd.notes',"const t=this.root","const t=this.t=this.root");P('wd.notes',"text:f})}}}","text:f})}}\n onNewIntent(i){this.t.value=i.data?this.sys.fs.readFile(i.data):(i.extras||{}).text||''}}");
+B.find(x=>x.id=='wd.notes').filters=[{action:'VIEW',ext:['txt','md','sh','jsc','soj']},{action:'SEND'}];
+P('wd.installer',"const t=r.querySelector","const t=this.t=r.querySelector");P('wd.installer',"uninstall(u);this.render()}}}}","uninstall(u);this.render()}}}\n onNewIntent(i){this.t.value=this.sys.fs.readFile(i.data)}}");
+B.find(x=>x.id=='wd.installer').filters=[{action:'VIEW',ext:['apkx']}];
+B.find(x=>x.id=='wd.tasks').widget='TasksWidget';
+P('wd.tasks',/$/,"\nclass TasksWidget{constructor(s){this.s=s}update(el){el.innerHTML='<b>⚙️ '+this.s.proc.list().length+' processos</b> em execução'}}");
+B.push({id:'wd.term',name:'Terminal',icon:'⌨️',permissions:['fs','process','apps','notifications'],main:'Terminal',code:String.raw`class Terminal extends AndroidApp{
+ onCreate(){this.cwd='/sdcard';this.root.innerHTML='<pre style="flex:1;margin:0;padding:8px;overflow:auto;font:12px monospace;white-space:pre-wrap"></pre><div class="bar"><input placeholder="$ comando" autocapitalize="off"></div>';
+  this.o=this.root.querySelector('pre');this.i=this.root.querySelector('input');this.out('WebDroid sh - digite help');
+  this.i.onkeydown=e=>{if(e.key==='Enter'){const l=this.i.value;this.i.value='';this.out('$ '+l);this.sh(l)}}}
+ out(t){this.o.textContent+=t+'\n';this.o.scrollTop=1e9}
+ abs(p){if(!p)return this.cwd;if(p[0]!=='/')p=(this.cwd==='/'?'':this.cwd)+'/'+p;const r=[];for(const s of p.split('/')){if(s==='..')r.pop();else if(s&&s!=='.')r.push(s)}return '/'+r.join('/')}
+ async sh(l){const fs=this.sys.fs;let red=null,ap=false,m=l.match(/^(.*?)\s*(>>?)\s*(\S+)$/);if(m){l=m[1];red=this.abs(m[3]);ap=m[2]==='>>'}
+  const a=l.trim().split(/\s+/),c=a.shift();if(!c)return;let r='';
+  try{switch(c){
+   case 'help':r='ls [-l] cd pwd cat echo mkdir touch rm cp mv ps kill notify install clear sh<file> am start <id> | binarios: /system/bin (.jsc)';break;
+   case 'pwd':r=this.cwd;break;
+   case 'cd':{const p=this.abs(a[0]||'/sdcard');if(!fs.stat(p).isDir)throw Error('nao e pasta');this.cwd=p;break}
+   case 'ls':{const p=this.abs(a.find(x=>x[0]!=='-')),lg=a.includes('-l');r=fs.stat(p).isDir?fs.readdir(p).map(n=>{const s=fs.stat(p+'/'+n);return lg?(s.isDir?'d ':'- ')+String(s.size).padStart(6)+' '+n:n+(s.isDir?'/':'')}).join(lg?'\n':'  '):p;break}
+   case 'cat':r=fs.readFile(this.abs(a[0]));break;
+   case 'echo':r=a.join(' ');break;
+   case 'mkdir':fs.mkdir(this.abs(a[0]));break;
+   case 'touch':{const p=this.abs(a[0]);fs.writeFile(p,fs.exists(p)?fs.readFile(p):'');break}
+   case 'rm':fs.rm(this.abs(a[0]));break;
+   case 'cp':fs.writeFile(this.abs(a[1]),fs.readFile(this.abs(a[0])));break;
+   case 'mv':fs.writeFile(this.abs(a[1]),fs.readFile(this.abs(a[0])));fs.rm(this.abs(a[0]));break;
+   case 'ps':r=this.sys.proc.list().map(p=>p.pid+' '+p.name+' '+p.uptime+'s').join('\n');break;
+   case 'kill':this.sys.proc.kill(+a[0]);break;
+   case 'am':this.sys.apps.launch(a[1]);break;
+   case 'notify':this.sys.notify({title:a[0],text:a.slice(1).join(' ')});break;
+   case 'install':this.sys.apps.install(fs.readFile(this.abs(a[0])));r='ok';break;
+   case 'clear':this.o.textContent='';break;
+   case 'sh':for(const x of fs.readFile(this.abs(a[0])).split('\n'))if(x.trim()&&x[0]!=='#')await this.sh(x);break;
+   default:{const f=['/system/bin/'+c+'.jsc','/system/bin/'+c,this.abs(c)].find(x=>fs.exists(x)&&!fs.stat(x).isDir);if(!f)throw Error(c+': comando nao encontrado');r=String(this.sys.jsc.run(fs.readFile(f),a,t=>this.out(t))??'')}}
+  }catch(e){r='erro: '+e.message}
+  if(red&&r!=='')fs.writeFile(red,(ap&&fs.exists(red)?fs.readFile(red):'')+r+'\n');else if(r!=='')this.out(r)}}`});
+B.push({id:'wd.config',name:'Config',icon:'🛠️',permissions:['settings'],main:'Config',code:String.raw`class Config extends AndroidApp{onCreate(){this.r()}
+ r(){const s=this.sys.settings;this.root.innerHTML='<div class="bar"><b>Configurações</b></div><div class="list">'+['Tema: '+s.get('theme'),'Papel de parede: '+s.get('wall'),'Limpar notificações','Restaurar de fábrica'].map((t,i)=>'<div class="row" data-i="'+i+'">'+t+'</div>').join('')+'</div>';
+  this.root.onclick=async e=>{const i=e.target.dataset.i;if(i==null)return;if(i==0){const c=['auto','light','dark'];s.set('theme',c[(c.indexOf(s.get('theme'))+1)%3])}
+   if(i==1)s.set('wall',(s.get('wall')+1)%4);if(i==2)s.clearNotifs();if(i==3&&await this.sys.confirm('Apagar todos os dados?'))s.reset();this.r()}}}`});
+B.push({id:'wd.cube',name:'3D',icon:'🧊',permissions:['graphics'],main:'Cube',code:String.raw`class Cube extends AndroidApp{async onCreate(){this.root.innerHTML='<canvas style="flex:1;width:100%"></canvas>';
+ const T=await this.sys.three.load(),c=this.root.querySelector('canvas'),w=this.root.clientWidth||360,h=this.root.clientHeight||560;
+ const r=new T.WebGLRenderer({canvas:c,antialias:true});r.setSize(w,h,false);const sc=new T.Scene(),cam=new T.PerspectiveCamera(60,w/h,.1,100);cam.position.z=3;
+ sc.add(new T.DirectionalLight(0xffffff,1),new T.AmbientLight(0x666666));
+ const m=new T.Mesh(new T.BoxGeometry(1.4,1.4,1.4),new T.MeshStandardMaterial({color:0x3b6ef5}));sc.add(m);
+ const loop=()=>{if(this.dead)return;if(!this.paused){m.rotation.x+=.01;m.rotation.y+=.015;r.render(sc,cam)}requestAnimationFrame(loop)};loop()}
+ onPause(){this.paused=1}onResume(){this.paused=0}onDestroy(){this.dead=1}}`});
+B.push({id:'com.demo.v2',format:'apkx/2',name:'Demo v2',icon:'🧪',permissions:[],main:'com.demo.MainActivity',
+ apis:[{name:'Lodash',pkg:'org.lodash',url:'https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.21/lodash.min.js',global:'_'}],
+ code:{com:{demo:{
+ MainActivity:String.raw`import org.lodash.Lodash
+class MainActivity extends Activity{async onCreate(){this.setContentView('<div class="c"><h2 id="t">Demo apkx/2</h2><button id="a">Binder: inc()</button><button id="b">Intent para Sobre</button></div>');
+ const svc=await sys.bindService({package:'com.demo.v2',component:'com.demo.CounterService'});
+ this.$('#a').onclick=async()=>{this.$('#t').textContent=Lodash.capitalize('contador')+': '+await svc.inc()};
+ this.$('#b').onclick=()=>sys.startActivity({component:'com.demo.AboutActivity',extras:{de:'MainActivity'}})}}`,
+ CounterService:String.raw`class CounterService extends Service{onCreate(){this.n=0}onBind(){return{inc:()=>++this.n}}}`,
+ AboutActivity:String.raw`class AboutActivity extends Activity{onCreate(){this.setContentView('<div class="c"><h2>Sobre</h2><small>'+JSON.stringify(this.intent.extras)+'</small><button>Voltar</button></div>');this.$('button').onclick=()=>this.finish()}}`}}}});
+/* boot v2: /system */
+['system/app','system/bin','system/lib','system/frameworks'].forEach(p=>S.fs.mkdir(p));
+const F=(p,t)=>S.fs.writeFile(p,t);
+F('/system/lib/math.soj','int square(int x){ return x*x; }\ndouble avg(double a, double b){ return (a+b)/2; }');
+F('/system/bin/hello.jsc','#include <math.soj>\nint main(int argc, char** argv){\n  printf("Ola JSC! square(7)=%d avg=%.2f\\n", math.square(7), math.avg(3,4));\n  return 0;\n}');
+F('/system/bin/fib.jsc','int fib(int n){ if(n<2) return n; return fib(n-1)+fib(n-2); }\nint main(int argc, char** argv){\n  int n = argc>0 ? parseInt(argv[0]) : 10;\n  printf("fib(%d)=%d\\n", n, fib(n));\n  return 0;\n}');
+F('/system/frameworks/three.url','https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js');
+B.forEach(m=>{S.fs.rm('/data/app/'+m.id+'.apkx');F('/system/app/'+m.id+'.apkx',JSON.stringify(S.parse(Object.assign({format:'apkx/1',version:'2.0'},m))))});
+$('#home').innerHTML='<div id="widgets"></div><div id="grid"></div><button id="dbtn">Todos os apps</button>';
+$('#screen').insertAdjacentHTML('beforeend','<div id="drawer"><input id="dq" placeholder="Buscar apps"><div id="dgrid"></div></div>');
+$('#dq').oninput=renderGrid;$('#dbtn').onclick=()=>$('#drawer').classList.add('on');
+S.load();S.applyCfg();renderGrid();renderWidgets();
+</script><style>
+#home{display:block;overflow:hidden;touch-action:none;padding:0}
+#pager{position:absolute;inset:0 0 100px 0;overflow:hidden}#track{display:flex;height:100%;transition:transform .25s}
+.pg{flex:none;width:100%;height:100%;padding:44px 10px 0;overflow:hidden}.pgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px 4px;align-content:start}
+#dock{position:absolute;left:8px;right:8px;bottom:8px;height:78px;display:flex;justify-content:space-around;align-items:center;background:rgba(255,255,255,.16);backdrop-filter:blur(8px);border-radius:24px}
+#dots{position:absolute;bottom:92px;left:0;right:0;display:flex;justify-content:center;gap:6px}#dots span{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.4)}#dots .on{background:#fff}
+.arr{position:absolute;top:45%;background:rgba(0,0,0,.3);color:#fff;width:26px;height:52px;padding:0;border-radius:14px;z-index:2}#pl{left:2px}#pr{right:2px}
+#edbar{position:absolute;top:0;left:0;right:0;display:none;gap:4px;padding:6px;flex-wrap:wrap;background:rgba(0,0,0,.5);z-index:3}#edbar button{padding:6px 8px;font-size:12px}
+#dbtn2{width:54px;height:54px;font-size:22px;border-radius:16px;background:rgba(255,255,255,.28);color:#fff}
+.ic{position:relative}.xb{position:absolute;top:-4px;right:6px;background:#e33;border-radius:50%;width:18px;height:18px;font-size:11px;display:grid;place-items:center}
+#dlg .box{max-height:80%;overflow:auto}#dcl{align-self:center;background:rgba(255,255,255,.15);color:#fff}
+</style>
+<script>
+/* ===== v3: páginas na tela inicial, gaveta por botão/gesto, edição, novos apps ===== */
+S.pg=0;S.ed=false;S.edit=v=>{S.ed=v;renderGrid()};
+const go=n=>{const L=S.cfg.pages.length;S.pg=Math.max(0,Math.min(L-1,n));$('#track').style.transform='translateX(-'+S.pg*100+'%)';[...$('#dots').children].forEach((d,i)=>d.className=i==S.pg?'on':'')};
+const openDr=()=>{$('#drawer').classList.add('on');$('#dq').value=''};
+function norm(){const c=S.cfg;c.pinned=(c.pinned||[]).filter(i=>S.reg[i]);
+ if(!c.pages){const ids=Object.keys(S.reg).filter(i=>!c.pinned.includes(i));c.pages=[];for(let k=0;k<ids.length;k+=8)c.pages.push(ids.slice(k,k+8));c.seen=Object.keys(S.reg);if(!c.pages.length)c.pages=[[]]}
+ c.seen=c.seen||[];c.pages=c.pages.map(p=>p.filter(i=>S.reg[i]));
+ for(const i in S.reg)if(!c.seen.includes(i)){c.seen.push(i);if(!c.pinned.includes(i))c.pages.at(-1).push(i)}
+ if(S.pg>=c.pages.length)S.pg=c.pages.length-1}
+const mk=(m,el,dr)=>{const d=document.createElement('div');d.className='ic';d.innerHTML='<i>'+esc(m.icon)+'</i>'+esc(m.name)+(S.ed&&!dr?'<b class="xb">✕</b>':'');let t,x0,y0;
+ d.onpointerdown=e=>{x0=e.clientX;y0=e.clientY;t=setTimeout(async()=>{t=0;if(dr){if(await S.choose(m.name,['Desinstalar'])==0)S.uninstall(m.id)}else if(!S.ed)S.edit(true)},600)};
+ d.onpointerup=d.onpointerleave=()=>clearTimeout(t);
+ d.onclick=async e=>{if(t===0){t=undefined;return}if(Math.abs(e.clientX-x0)>10||Math.abs(e.clientY-y0)>10)return;
+  if(S.ed&&!dr){const c=S.cfg,pin=c.pinned.includes(m.id),k=await S.choose(m.name,['Remover da tela inicial',pin?'Tirar da dock':'Mover para a dock','Mover para a próxima página']);if(k<0)return;
+   c.pages.forEach(p=>{const j=p.indexOf(m.id);if(j>=0)p.splice(j,1)});c.pinned=c.pinned.filter(i=>i!=m.id);
+   if(k==1){if(!pin&&c.pinned.length<5)c.pinned.push(m.id);else{if(!pin)S.toast('Dock cheia');c.pages[S.pg].push(m.id)}}
+   if(k==2){const n=S.pg+1;if(n>=c.pages.length)c.pages.push([]);c.pages[n].push(m.id)}
+   return renderGrid()}
+  $('#drawer').classList.remove('on');S.launch(m.id)};el.append(d)};
+function renderGrid(){if(!$('#track'))return;norm();S.saveCfg();const c=S.cfg;
+ $('#track').innerHTML=c.pages.map((p,n)=>'<div class="pg">'+(n==0&&c.widgets!==false?'<div id="widgets"></div>':'')+'<div class="pgrid" data-n="'+n+'"></div></div>').join('');
+ c.pages.forEach((p,n)=>p.forEach(i=>mk(S.reg[i],$('.pgrid[data-n="'+n+'"]'))));
+ const dk=$('#dock');dk.innerHTML='';c.pinned.forEach(i=>mk(S.reg[i],dk));
+ const b=document.createElement('button');b.id='dbtn2';b.setAttribute('aria-label','Todos os apps');b.textContent='⌃';b.onclick=openDr;dk.append(b);
+ $('#dots').innerHTML=c.pages.map(()=>'<span></span>').join('');go(S.pg);
+ $('#edbar').style.display=S.ed?'flex':'none';
+ const dg=$('#dgrid');dg.innerHTML='';const q=($('#dq').value||'').toLowerCase();Object.values(S.reg).filter(m=>m.name.toLowerCase().includes(q)).forEach(m=>mk(m,dg,1));renderWidgets()}
+const a1=S.api;S.api=p=>{const b=a1(p);b.settings.editHome=()=>{if(!p.m.permissions.includes('settings'))throw Error('Permissão negada: settings');S.home();S.edit(true)};return b};
+/* novos apps */
+B.push({id:'wd.gallery',name:'Galeria',icon:'🖼️',permissions:['fs'],main:'Gallery',filters:[{action:'VIEW',ext:['png','jpg','jpeg','gif','webp','svg']}],code:String.raw`class Gallery extends AndroidApp{onCreate(){this.r()}
+ list(){const fs=this.sys.fs,d='/sdcard/Pictures';if(!fs.exists(d))fs.mkdir(d);return fs.readdir(d).map(n=>d+'/'+n).filter(p=>fs.readFile(p).startsWith('data:image'))}
+ r(v){const fs=this.sys.fs,root=this.root;this.v=v||0;
+  if(v){root.innerHTML='<div class="bar"><button id="b">Voltar</button><button id="s">Compartilhar</button><button id="x">Apagar</button></div><img style="flex:1;min-height:0;object-fit:contain;width:100%" src="'+fs.readFile(v)+'">';
+   root.querySelector('#b').onclick=()=>this.r();root.querySelector('#x').onclick=()=>{fs.rm(v);this.r()};
+   root.querySelector('#s').onclick=()=>this.sys.startActivity({action:'SEND',data:v,extras:{text:v}});root.onclick=null;return}
+  root.innerHTML='<div class="bar"><b>Galeria</b><button id="a">+ Importar</button><input type="file" accept="image/*" hidden></div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:2px;overflow:auto">'+this.list().map(p=>'<img data-n="'+p+'" style="width:100%;aspect-ratio:1;object-fit:cover" src="'+fs.readFile(p)+'">').join('')+'</div>';
+  const f=root.querySelector('input');root.querySelector('#a').onclick=()=>f.click();
+  f.onchange=()=>{const fr=new FileReader();fr.onload=()=>{fs.writeFile('/sdcard/Pictures/'+f.files[0].name,fr.result);this.r()};fr.readAsDataURL(f.files[0])};
+  root.onclick=e=>{if(e.target.dataset.n)this.r(e.target.dataset.n)}}
+ onBack(){if(this.v){this.r();return true}return false}
+ onNewIntent(i){if(i.data&&this.sys.fs.exists(i.data))this.r(i.data)}}`});
+B.push({id:'wd.calc',name:'Calculadora',icon:'🧮',permissions:[],main:'Calc',code:String.raw`class Calc extends AndroidApp{onCreate(){this.e='';const k='C ( ) ÷ 7 8 9 × 4 5 6 − 1 2 3 + 0 . ⌫ ='.split(' ');
+ this.root.innerHTML='<div class="c" style="justify-content:flex-end;align-items:flex-end;padding:16px"><h1 style="font-size:44px;word-break:break-all">0</h1></div><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:8px">'+k.map(x=>'<button style="padding:16px;font-size:18px">'+x+'</button>').join('')+'</div>';
+ const o=this.root.querySelector('h1');this.root.onclick=e=>{if(e.target.tagName!=='BUTTON')return;const x=e.target.textContent;
+  if(x==='C')this.e='';else if(x==='⌫')this.e=this.e.slice(0,-1);
+  else if(x==='='){try{const q=this.e.replace(/×/g,'*').replace(/÷/g,'/').replace(/−/g,'-');if(!/^[\d+\-*\/().\s]+$/.test(q))throw 0;this.e=String(Function('return ('+q+')')())}catch(_){this.e='Erro'}}
+  else this.e+=x;o.textContent=this.e||'0'}}}`});
+B.push({id:'wd.clock',name:'Relógio',icon:'⏱️',permissions:['notifications'],main:'Clock',code:String.raw`class Clock extends AndroidApp{onCreate(){this.t=0;this.run=0;
+ this.root.innerHTML='<div class="c"><h1 style="font-size:48px">00:00.0</h1><div style="display:flex;gap:8px"><button id="a">Iniciar</button><button id="b">Zerar</button><button id="c">Alarme 10s</button></div></div>';
+ const h=this.root.querySelector('h1'),a=this.root.querySelector('#a');
+ this.iv=setInterval(()=>{if(this.run)this.t+=100;const s=this.t/1000;h.textContent=String(Math.floor(s/60)).padStart(2,'0')+':'+(s%60).toFixed(1).padStart(4,'0')},100);
+ a.onclick=()=>{this.run=!this.run;a.textContent=this.run?'Pausar':'Iniciar'};this.root.querySelector('#b').onclick=()=>{this.t=0};
+ this.root.querySelector('#c').onclick=()=>{this.sys.toast('Alarme em 10s');setTimeout(()=>this.sys.notify({title:'Alarme',text:'Passaram 10 segundos'}),10000)}}
+ onDestroy(){clearInterval(this.iv)}}`});
+B.push({id:'wd.paint',name:'Desenho',icon:'🎨',permissions:['fs'],main:'Paint',code:String.raw`class Paint extends AndroidApp{onCreate(){
+ this.root.innerHTML='<div class="bar"><input type="color" value="#3b6ef5" style="width:48px;padding:0"><button id="l">Limpar</button><button id="s">Salvar na Galeria</button></div><canvas width="360" height="520" style="flex:1;min-height:0;touch-action:none;width:100%"></canvas>';
+ const c=this.root.querySelector('canvas'),col=this.root.querySelector('input'),g=c.getContext('2d');
+ const clr=()=>{g.fillStyle='#fff';g.fillRect(0,0,360,520)};clr();g.lineWidth=4;g.lineCap='round';let d=0;
+ const P=e=>{const r=c.getBoundingClientRect();return[(e.clientX-r.left)*c.width/r.width,(e.clientY-r.top)*c.height/r.height]};
+ c.onpointerdown=e=>{d=1;g.strokeStyle=col.value;g.beginPath();g.moveTo(...P(e))};c.onpointermove=e=>{if(d){g.lineTo(...P(e));g.stroke()}};c.onpointerup=()=>{d=0};
+ this.root.querySelector('#l').onclick=clr;
+ this.root.querySelector('#s').onclick=()=>{const fs=this.sys.fs;if(!fs.exists('/sdcard/Pictures'))fs.mkdir('/sdcard/Pictures');fs.writeFile('/sdcard/Pictures/desenho-'+Date.now()+'.png',c.toDataURL());this.sys.toast('Salvo na Galeria')}}}`});
+const cf=B.find(x=>x.id=='wd.config');cf.permissions=['settings','fs'];
+cf.code=String.raw`class Config extends AndroidApp{onCreate(){this.r()}
+ size(fs,p){let n=0;for(const f of fs.readdir(p)){const q=(p==='/'?'':p)+'/'+f,s=fs.stat(q);n+=s.isDir?this.size(fs,q):s.size}return n}
+ r(){const s=this.sys.settings,u=(this.size(this.sys.fs,'/')/1024).toFixed(1)+' KB';
+  this.root.innerHTML='<div class="bar"><b>Configurações</b></div><div class="list">'+['Tema: '+s.get('theme'),'Papel de parede: '+(s.get('wall')+1),'Editar tela inicial','Armazenamento usado: '+u,'Limpar notificações','Sobre: WebDroid 2.1 (apkx/1 e apkx/2)','Restaurar de fábrica'].map((t,i)=>'<div class="row" data-i="'+i+'">'+t+'</div>').join('')+'</div>';
+  this.root.onclick=async e=>{const i=e.target.dataset.i;if(i==null)return;
+   if(i==0){const c=['auto','light','dark'];s.set('theme',c[(c.indexOf(s.get('theme'))+1)%3])}
+   if(i==1)s.set('wall',(s.get('wall')+1)%4);if(i==2)return s.editHome();
+   if(i==4)s.clearNotifs();if(i==6&&await this.sys.confirm('Apagar todos os dados?'))s.reset();this.r()}}}`;
+S.fs.mkdir('/sdcard/Pictures');
+B.forEach(m=>{S.fs.rm('/data/app/'+m.id+'.apkx');F('/system/app/'+m.id+'.apkx',JSON.stringify(S.parse(Object.assign({format:'apkx/1',version:'2.1'},m))))});
+/* DOM da tela inicial */
+$('#home').innerHTML='<div id="edbar"><button id="e1">+ App</button><button id="e2">+ Página</button><button id="e3">− Página</button><button id="e4">Widgets</button><button id="e5">Papel</button><button id="e6">Concluído</button></div><div id="pager"><div id="track"></div></div><div id="dots"></div><button id="pl" class="arr" aria-label="Página anterior">‹</button><button id="pr" class="arr" aria-label="Próxima página">›</button><div id="dock"></div>';
+$('#drawer').insertAdjacentHTML('afterbegin','<button id="dcl">⌄ Fechar</button>');
+$('#dcl').onclick=()=>$('#drawer').classList.remove('on');
+$('#pl').onclick=()=>go(S.pg-1);$('#pr').onclick=()=>go(S.pg+1);
+$('#e1').onclick=async()=>{const c=S.cfg,h=Object.values(S.reg).filter(m=>!c.pinned.includes(m.id)&&!c.pages.flat().includes(m.id));
+ if(!h.length)return S.toast('Todos os apps já estão na tela');const k=await S.choose('Adicionar à página '+(S.pg+1),h.map(m=>m.icon+' '+m.name));if(k>=0){c.pages[S.pg].push(h[k].id);renderGrid()}};
+$('#e2').onclick=()=>{S.cfg.pages.push([]);S.pg=S.cfg.pages.length-1;renderGrid()};
+$('#e3').onclick=()=>{if(S.cfg.pages.length>1){S.cfg.pages.splice(S.pg,1);renderGrid()}else S.toast('Precisa de ao menos 1 página')};
+$('#e4').onclick=()=>{S.cfg.widgets=S.cfg.widgets===false;renderGrid()};
+$('#e5').onclick=()=>{S.cfg.wall=(S.cfg.wall+1)%W.length;S.applyCfg();S.saveCfg()};
+$('#e6').onclick=()=>S.edit(false);
+let sx,sy,lt;const hm=$('#home');
+hm.onpointerdown=e=>{sx=e.clientX;sy=e.clientY;if(!S.ed&&!e.target.closest('.ic,button'))lt=setTimeout(()=>S.edit(true),700)};
+hm.onpointermove=e=>{if(Math.abs(e.clientX-sx)>10||Math.abs(e.clientY-sy)>10)clearTimeout(lt)};
+hm.onpointerup=e=>{clearTimeout(lt);const dx=e.clientX-sx,dy=e.clientY-sy;
+ if(Math.abs(dx)>50&&Math.abs(dx)>Math.abs(dy))go(S.pg+(dx<0?1:-1));else if(dy<-60&&Math.abs(dy)>Math.abs(dx))openDr()};
+document.onkeydown=e=>{if(S.fg)return;if(e.key=='ArrowRight')go(S.pg+1);if(e.key=='ArrowLeft')go(S.pg-1);if(e.key=='ArrowUp')openDr()};
+const hh=S.home;S.home=()=>{S.ed=false;hh();renderGrid()};$('#homeb').onclick=S.home;
+S.load();S.applyCfg();renderGrid();
+</script><style>
+html,body{height:100%;overscroll-behavior:none;-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%}
+#phone{max-width:min(100%,420px);height:100dvh;max-height:min(100dvh,860px);user-select:none;-webkit-user-select:none}
+input,textarea{user-select:text;-webkit-user-select:text}
+@media (max-width:600px){:root{padding:0}#phone{max-width:none;max-height:none;border-radius:0}}
+.pgrid,#dgrid{grid-template-columns:repeat(auto-fill,minmax(78px,1fr))}
+.ic{font-size:12px;min-width:0}.ic i{width:clamp(48px,15vw,60px);height:clamp(48px,15vw,60px)}
+#dock .ic{font-size:0}#dock .ic i{width:52px;height:52px}
+#nav{height:52px}#nav button{height:48px;font-size:22px}
+.arr{width:34px;height:64px;font-size:26px;background:rgba(0,0,0,.35)}
+#dots{bottom:96px}#dots span{width:8px;height:8px}
+#dbtn2{width:52px;height:52px;font-size:26px}
+@media (pointer:coarse){input,textarea{font-size:16px!important}button{min-height:40px}.row{padding:14px 12px}}
+@media (max-height:520px){#dock{height:60px}#dock .ic i{width:42px;height:42px}#pager{bottom:78px}#dots{bottom:70px}.pg{padding-top:40px}}
+@media (min-width:601px){#phone{border:8px solid #000;box-shadow:0 20px 60px rgba(0,0,0,.4)}}
+</style>
+<script>
+/* mobile: vibração no long-press, sem menu de contexto, tamanho real da tela */
+$('#home').oncontextmenu=e=>e.preventDefault();
+const ov=S.edit;S.edit=v=>{if(v&&navigator.vibrate)try{navigator.vibrate(20)}catch(e){}ov(v)};
+addEventListener('resize',()=>{try{go(S.pg)}catch(e){}});
+</script><style>
+#home{z-index:1}#win{z-index:5}
+.app-root textarea{min-height:120px}
+.pic{width:1.5em;height:1.5em;object-fit:cover;border-radius:inherit;vertical-align:middle}.ic i .pic{width:100%;height:100%}
+.sr{color:#fff;padding:10px 4px;font-size:13px;border-bottom:1px solid rgba(255,255,255,.15);word-break:break-all;cursor:pointer}
+</style>
+<script>
+/* ===== v4: ícones (emoji/svg/base64/url), /data/data, shell para apps, widgets apkx/2, import/export, papel de parede ===== */
+const iconSrc=r=>{let t,v;if(r&&typeof r=='object'){t=r.type;v=r.value}else if(typeof r=='string'){v=r;t=/^\s*<svg/i.test(r)?'svg':/^data:/.test(r)?'base64':/^https?:/.test(r)?'url':'emoji'}
+ if(t=='svg')return 'data:image/svg+xml;utf8,'+encodeURIComponent(v);if(t=='base64')return String(v).startsWith('data:')?v:'data:image/png;base64,'+v;if(t=='url')return v;return null};
+const p1=S.parse;S.parse=t=>{const m=p1(t),r=m.iconRaw===undefined?m.icon:m.iconRaw;m.iconRaw=r;m.iconSrc=iconSrc(r);
+ m.icon=m.iconSrc?'\u2063'+m.id+'\u2063':((r&&typeof r=='object'?r.value:r)||'📦');return m};
+const RX=/\u2063([\w.\-]+)\u2063/;
+const fx=n=>{const f=document.createDocumentFragment();n.nodeValue.split(RX).forEach((x,i)=>{if(i%2){const m=S.reg[x],im=new Image();im.className='pic';im.alt='';im.src=m&&m.iconSrc||'';im.onerror=()=>im.replaceWith('📦');f.append(im)}else if(x)f.append(x)});n.replaceWith(f)};
+const scan=r=>{const w=document.createTreeWalker(r,NodeFilter.SHOW_TEXT),l=[];while(w.nextNode())if(RX.test(w.currentNode.nodeValue))l.push(w.currentNode);l.forEach(fx)};
+new MutationObserver(()=>scan($('#phone'))).observe($('#phone'),{childList:true,subtree:true,characterData:true});
+/* arquivos do aparelho */
+S.pick=img=>new Promise(r=>{const i=document.createElement('input');i.type='file';if(img)i.accept='image/*';
+ i.onchange=()=>{const f=i.files[0];if(!f)return r(null);const fr=new FileReader(),tx=!img&&(f.type.startsWith('text')||/\.(txt|md|json|js|sh|jsc|soj|apkx|csv|html|css|xml|log)$/i.test(f.name));
+  fr.onload=()=>r({name:f.name,data:fr.result});tx?fr.readAsText(f):fr.readAsDataURL(f)};i.click()});
+S.exp=async(name,c)=>{const d=window.claude?await claude.use('downloads'):null;if(!d)return S.toast('Exportar indisponível neste ambiente');
+ let data=c;if(c.startsWith('data:')){const[h,b]=c.split(','),bin=h.includes('base64')?atob(b):decodeURIComponent(b);data=new Blob([Uint8Array.from(bin,x=>x.charCodeAt(0))],{type:h.slice(5).split(';')[0]})}
+ if(!/\.(gif|png|jpe?g|webp|mp4|webm|txt|json|md|docx|pptx|epub|csv|ttf|html|svg|pdf|xlsx|zip)$/i.test(name))name+='.txt';
+ try{await d.save({filename:name,data});S.toast('Exportado: '+name)}catch(e){S.toast(e.code==='declined'?'Cancelado':'Falha: '+(e.message||e.code))}};
+/* API: dataDir, shell, import/export, wallpaper, proc.list com id */
+const a2=S.api;S.api=p=>{const b=a2(p),m=p.m,need=k=>{if(!m.permissions.includes(k))throw Error('Permissão negada: '+k)};
+ b.dataDir='/data/data/'+m.id;try{S.fs.mkdir(b.dataDir)}catch(e){}
+ b.proc.list=()=>(need('process'),Object.values(S.procs).map(q=>({pid:q.pid,id:q.m.id,name:q.m.name,workers:q.workers.length,uptime:Math.floor((Date.now()-q.start)/1000)})));
+ b.shell={exec:async(l,o={})=>{need('shell');const tm=S.reg['wd.term'],C=new Function('AndroidApp',tm.code+'\nreturn Terminal')(AndroidApp),t=Object.create(C.prototype);
+  t.sys=S.api({pid:0,m:tm,workers:[],start:Date.now(),svcs:{},stack:[]});t.cwd=o.cwd||b.dataDir;t.o={textContent:'',scrollTop:0};
+  for(const x of String(l).split('\n'))if(x.trim())await t.sh(x);return t.o.textContent}};
+ b.exportFile=path=>(need('fs'),S.exp(path.split('/').pop(),S.fs.readFile(path)));
+ b.importFile=async dir=>{need('fs');const f=await S.pick();if(!f)return null;const q=(dir||'/sdcard')+'/'+f.name;S.fs.writeFile(q,f.data);S.toast('Importado: '+f.name);return q};
+ b.settings.setWallpaper=q=>{need('settings');S.cfg.wallImg=q;S.saveCfg();S.applyCfg()};
+ b.settings.pickWallpaper=async()=>{need('settings');const f=await S.pick(1);if(!f)return;S.fs.writeFile('/data/wallpaper',f.data);S.cfg.wallImg='/data/wallpaper';S.saveCfg();S.applyCfg()};
+ return b};
+const u0=S.uninstall;S.uninstall=id=>{if(!S.fs.exists('/system/app/'+id+'.apkx'))S.fs.rm('/data/data/'+id);u0(id)};
+S.applyCfg=()=>{const r=document.documentElement;S.cfg.theme==='auto'?r.removeAttribute('data-theme'):r.dataset.theme=S.cfg.theme;let bg=W[S.cfg.wall%W.length];
+ if(S.cfg.wallImg&&S.fs.exists(S.cfg.wallImg)){const d=S.fs.readFile(S.cfg.wallImg);if(d.startsWith('data:image'))bg='url("'+d+'") center/cover no-repeat'}$('#home').style.background=bg};
+/* widgets (apkx/1 e apkx/2) */
+function renderWidgets(){const w=$('#widgets');if(!w)return;S.wg=[];const off=S.cfg.wOff||[];w.innerHTML=off.includes('clock')?'':'<div class="wg" id="wclock"></div>';
+ for(const m of Object.values(S.reg)){if(!m.widget||off.includes(m.id))continue;const el=document.createElement('div');el.className='wg';w.append(el);
+  const pr={pid:0,m,workers:[],start:Date.now(),svcs:{},stack:[]};pr.api=S.api(pr);
+  (async()=>{try{let C;if(typeof m.code=='object'){await S.cl(m,pr);C=pr.ld(m.widget)}else C=new Function('AndroidApp',m.code+'\nreturn '+m.widget)(AndroidApp);
+   const o=new C(pr.api);S.wg.push(()=>o.update(el));o.update(el)}catch(e){el.remove()}})()}}
+$('#e4').onclick=async()=>{const off=S.cfg.wOff=S.cfg.wOff||[],l=[['clock','🕒 Relógio'],...Object.values(S.reg).filter(m=>m.widget).map(m=>[m.id,m.icon+' '+m.name])];
+ const k=await S.choose('Widgets: toque para ligar/desligar',l.map(x=>(off.includes(x[0])?'☐ ':'☑ ')+x[1]));if(k<0)return;const id=l[k][0];
+ S.cfg.wOff=off.includes(id)?off.filter(x=>x!=id):[...off,id];S.cfg.widgets=true;S.pg=0;renderGrid()};
+$('#e5').onclick=async()=>{const k=await S.choose('Papel de parede',['Próximo gradiente','Escolher imagem','Remover imagem']);
+ if(k==0){S.cfg.wallImg='';S.cfg.wall=(S.cfg.wall+1)%W.length}if(k==1){const f=await S.pick(1);if(f){S.fs.writeFile('/data/wallpaper',f.data);S.cfg.wallImg='/data/wallpaper'}}if(k==2)S.cfg.wallImg='';S.saveCfg();S.applyCfg()};
+/* busca da gaveta: apps + arquivos */
+S.fw=(p,q,o)=>{try{for(const n of S.fs.readdir(p)){const f=(p==='/'?'':p)+'/'+n;if(n.toLowerCase().includes(q)&&o.length<15)o.push(f);if(S.fs.stat(f).isDir)S.fw(f,q,o)}}catch(e){}};
+$('#dq').oninput=()=>{const q=$('#dq').value.toLowerCase().trim(),dg=$('#dgrid');dg.innerHTML='';
+ Object.values(S.reg).filter(m=>m.name.toLowerCase().includes(q)||m.id.toLowerCase().includes(q)).forEach(m=>mk(m,dg,1));
+ if(q.length>1){const o=[];S.fw('/',q,o);o.forEach(f=>{const d=document.createElement('div');d.className='sr';d.style.gridColumn='1/-1';d.textContent=(S.fs.stat(f).isDir?'📁 ':'📄 ')+f;
+  d.onclick=()=>{if(!S.fs.stat(f).isDir){$('#drawer').classList.remove('on');S.start({action:'VIEW',data:f})}};dg.append(d)})}};
+$('#dq').onkeydown=e=>{if(e.key==='Enter'){const i=$('#dgrid .ic');if(i)i.click()}};
+new MutationObserver(()=>{if($('#drawer').classList.contains('on'))$('#dq').oninput()}).observe($('#drawer'),{attributes:true,attributeFilter:['class']});
+/* patches nos apps embutidos */
+const P2=(id,a,b)=>{const x=B.find(x=>x.id==id);if(!x.code.includes(a))console.warn('patch falhou',id,a);x.code=x.code.replace(a,b)};
+P2('wd.files',"'Instalar (.apkx)']","'Instalar (.apkx)','Exportar']");P2('wd.files',"if(k===3){try{","if(k===4)this.sys.exportFile(p);\n    if(k===3){try{");
+P2('wd.files','<button data-a="new">+ Arquivo</button>','<button data-a="new">+ Arquivo</button><button data-a="imp">Importar</button>');
+P2('wd.files',"if(d.a==='mkdir')","if(d.a==='imp'){await this.sys.importFile(this.cwd);return this.render()}\n   if(d.a==='mkdir')");
+B.find(x=>x.id=='wd.gallery').permissions=['fs','settings'];
+P2('wd.gallery','<button id="s">Compartilhar</button><button id="x">','<button id="s">Compartilhar</button><button id="w">Papel</button><button id="x">');
+P2('wd.gallery',"root.querySelector('#b').onclick=()=>this.r();","root.querySelector('#b').onclick=()=>this.r();root.querySelector('#w').onclick=()=>{this.sys.settings.set('wallImg',v);this.sys.toast('Papel de parede definido')};");
+P2('wd.term',"out(t){","onNewIntent(i){const e=(i.data||'').split('.').pop();this.sh(e=='sh'?'sh '+i.data:e=='jsc'?i.data:'cat '+i.data)}\n out(t){");
+B.find(x=>x.id=='wd.term').filters=[{action:'VIEW',ext:['sh','jsc','soj']}];B.find(x=>x.id=='wd.term').permissions.push('shell');
+B.find(x=>x.id=='wd.notes').filters=[{action:'VIEW',ext:['txt','md','sh','jsc','soj','json','html','apkx']},{action:'SEND'}];
+P2('wd.paint',"c.onpointerdown=","this.g=g;c.onpointerdown=");P2('wd.paint',"this.sys.toast('Salvo na Galeria')}}}","this.sys.toast('Salvo na Galeria')}}\n onNewIntent(i){const im=new Image(),g=this.g;im.onload=()=>g.drawImage(im,0,0,360,520);im.src=this.sys.fs.readFile(i.data)}}");
+B.find(x=>x.id=='wd.paint').filters=[{action:'VIEW',ext:['png','jpg','jpeg','gif','webp','svg']}];
+const cf2=B.find(x=>x.id=='wd.config');cf2.permissions=['settings','fs','apps','process'];
+cf2.code=String.raw`class Config extends AndroidApp{onCreate(){this.r()}
+ size(fs,p){let n=0;for(const f of fs.readdir(p)){const q=(p==='/'?'':p)+'/'+f,s=fs.stat(q);n+=s.isDir?this.size(fs,q):s.size}return n}
+ r(){const s=this.sys.settings,u=(this.size(this.sys.fs,'/')/1024).toFixed(1)+' KB';
+  this.root.innerHTML='<div class="bar"><b>Configurações</b></div><div class="list">'+['Tema: '+s.get('theme'),'Papel de parede','Aplicativos','Editar tela inicial','Armazenamento usado: '+u,'Limpar notificações','Sobre: WebDroid 2.2 (apkx/1 e apkx/2)','Restaurar de fábrica'].map((t,i)=>'<div class="row" data-i="'+i+'">'+t+'</div>').join('')+'</div>';
+  this.root.onclick=async e=>{const i=e.target.dataset.i;if(i==null)return;
+   if(i==0){const c=['auto','light','dark'];s.set('theme',c[(c.indexOf(s.get('theme'))+1)%3])}
+   if(i==1){const k=await this.sys.choose('Papel de parede',['Próximo gradiente','Escolher imagem','Remover imagem']);if(k==0){s.set('wallImg','');s.set('wall',(s.get('wall')+1)%4)}if(k==1)await s.pickWallpaper();if(k==2)s.set('wallImg','')}
+   if(i==2)return this.apps();if(i==3)return s.editHome();
+   if(i==5)s.clearNotifs();if(i==7&&await this.sys.confirm('Apagar todos os dados?'))s.reset();this.r()}}
+ async apps(){const l=this.sys.apps.list(),k=await this.sys.choose('Aplicativos',l.map(a=>a.icon+' '+a.name+' v'+a.version));if(k<0)return;const a=l[k];
+  const j=await this.sys.choose(a.name,['Abrir','Forçar parada','Limpar dados','Desinstalar','Info']);
+  if(j==0)return this.sys.apps.launch(a.id);
+  if(j==1)this.sys.proc.list().filter(p=>p.id==a.id).forEach(p=>this.sys.proc.kill(p.pid));
+  if(j==2){const d='/data/data/'+a.id;this.sys.fs.rm(d);this.sys.fs.mkdir(d);this.sys.toast('Dados limpos')}
+  if(j==3&&await this.sys.confirm('Desinstalar '+a.name+'?'))this.sys.apps.uninstall(a.id);
+  if(j==4)this.sys.toast(a.id+' - '+(typeof a.code=='object'?'apkx/2':'apkx/1')+' - permissões: '+(a.permissions.join(', ')||'nenhuma'));
+  this.apps()}}`;
+/* demo v2: ícone SVG + widget */
+const dm=B.find(x=>x.id=='com.demo.v2');dm.icon={type:'svg',value:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#7b3fe4"/><path d="M24 12h16v6l10 26a6 6 0 0 1-6 8H20a6 6 0 0 1-6-8l10-26z" fill="#fff"/></svg>'};
+dm.widget='com.demo.DemoWidget';dm.permissions=['shell'];
+dm.code.com.demo.DemoWidget=String.raw`class DemoWidget{constructor(sys){this.sys=sys}update(el){el.innerHTML='<b>Demo v2 (widget apkx/2)</b><br>'+new Date().toLocaleTimeString()}}`;
+B.forEach(m=>{S.fs.rm('/data/app/'+m.id+'.apkx');F('/system/app/'+m.id+'.apkx',JSON.stringify(S.parse(Object.assign({format:'apkx/1',version:'2.2'},m))))});
+S.fs.mkdir('/data/data');S.load();Object.keys(S.reg).forEach(id=>S.fs.mkdir('/data/data/'+id));
+S.applyCfg();renderGrid();
+</script></body></html>
