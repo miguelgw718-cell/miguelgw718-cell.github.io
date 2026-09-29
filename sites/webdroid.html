@@ -233,7 +233,7 @@ S.sc={};S.script=u=>S.sc[u]=S.sc[u]||new Promise((ok,no)=>{const e=document.crea
 S.choose=(t,o)=>new Promise(r=>{const d=$('#dlg');d.innerHTML='<div class="box"><b></b>'+o.map((x,i)=>'<div class="row" data-i="'+i+'">'+esc(x)+'</div>').join('')+'</div>';d.querySelector('b').textContent=t;d.classList.add('on');d.onclick=e=>{const i=e.target.closest('[data-i]');d.classList.remove('on');r(i?+i.dataset.i:-1)}});
 // classloader do formato apkx/2: code = dict de pacotes; apis = libs por URL com Proxy
 S.cl=async(m,p)=>{const src={},cache={};(function w(o,q){for(const k in o)typeof o[k]=='object'?w(o[k],q+k+'.'):src[q+k]=o[k]})(m.code,'');
- for(const a of m.apis||[]){await S.script(a.url);cache[(a.pkg?a.pkg+'.':'')+a.name]=new Proxy(class{},{get:(t,k)=>window[a.global][k],construct:(t,x)=>new window[a.global](...x)})}
+ for(const a of m.apis||[]){const key=(a.pkg?a.pkg+'.':'')+a.name;try{await S.script(a.url);cache[key]=new Proxy(class{},{get:(t,k)=>window[a.global][k],construct:(t,x)=>new window[a.global](...x)})}catch(e){if(a.optional!==true)throw Error('API obrigatória indisponível: '+a.name);cache[key]=new Proxy(class{},{get:()=>undefined})}}
  const ld=q=>{if(cache[q])return cache[q];let s=src[q];if(s==null)throw Error('classe não encontrada: '+q);const im=[];
   s=s.replace(/^\s*import\s+([\w.]+)\s*;?/gm,(_,n)=>{im.push(n);return''});
   return cache[q]=new Function('Activity','Service','Intent','sys',...im.map(n=>n.split('.').pop()),'return '+s)(Activity,Service,Intent,p.api,...im.map(ld))};
@@ -769,4 +769,229 @@ dm.widget=undefined;dm.widgets=[{class:'com.demo.DemoWidget',name:'Demo v2',w:2,
 dm.code.com.demo.CounterWidget=String.raw`class CounterWidget{constructor(sys){this.sys=sys;this.n=0}update(el){el.innerHTML='<b style="font-size:24px">'+(++this.n)+'</b><br><small>ticks</small>'}}`;
 B.forEach(m=>{S.fs.rm('/data/app/'+m.id+'.apkx');F('/system/app/'+m.id+'.apkx',JSON.stringify(S.parse(Object.assign({format:'apkx/1',version:'2.4'},m))))});
 S.load();renderGrid();
+</script><script>
+/* ===== v7: /dev (fb0 video0 mic0 full mem), memória 1GB, ponteiros/async/fetch/binder no JSC, MediaPlayer, troca de câmera, /tmp, /system/etc ===== */
+class Mem{constructor(){this.size=1<<30;this.pg=new Map();this.reg=new Map();this.names=new Map();this.used=0;this.nx=0x1000;this.fl=[]}
+ rb(a){const p=this.pg.get(a>>>12);return p?p[a&4095]:0}
+ wb(a,v){const k=a>>>12;let p=this.pg.get(k);if(!p)this.pg.set(k,p=new Uint8Array(4096));p[a&4095]=v}
+ rd(a,n){const o=new Uint8Array(n);for(let i=0;i<n;i++)o[i]=this.rb(a+i);return o}
+ wr(a,b){for(let i=0;i<b.length;i++)this.wb(a+i,b[i])}
+ sz(t){return{c:1,s:2,i:4,f:4,d:8}[t]||4}
+ ldA(t,a){const v=new DataView(this.rd(a,this.sz(t)).buffer);return t=='c'?v.getInt8(0):t=='s'?v.getInt16(0,true):t=='f'?v.getFloat32(0,true):t=='d'?v.getFloat64(0,true):v.getInt32(0,true)}
+ stA(t,a,x){const b=new ArrayBuffer(this.sz(t)),v=new DataView(b);t=='c'?v.setInt8(0,x):t=='s'?v.setInt16(0,x,true):t=='f'?v.setFloat32(0,x,true):t=='d'?v.setFloat64(0,x,true):v.setInt32(0,x,true);this.wr(a,new Uint8Array(b))}
+ alloc(n,owner,name,shared){n=Math.ceil(n/16)*16;if(!(n>0)||this.used+n>this.size)throw Error('ENOMEM');if(name&&this.names.has(name))throw Error('EEXIST: '+name);
+  let a,i=this.fl.findIndex(f=>f.n>=n);if(i>=0){const f=this.fl[i];a=f.a;if(f.n>n){f.a+=n;f.n-=n}else this.fl.splice(i,1)}else{if(this.nx+n>this.size)throw Error('ENOMEM');a=this.nx;this.nx+=n}
+  const r={a,n,owner,name,shared};this.reg.set(a,r);this.used+=n;if(name)this.names.set(name,r);return r}
+ free(a){const r=this.reg.get(a);if(!r)throw Error('EFAULT: free inválido 0x'+a.toString(16));this.reg.delete(a);this.used-=r.n;if(r.name)this.names.delete(r.name);
+  for(let k=a>>>12;k<=(a+r.n-1)>>>12;k++){const p=this.pg.get(k);if(p)for(let x=Math.max(a,k<<12);x<Math.min(a+r.n,(k+1)<<12);x++)p[x&4095]=0}this.fl.push({a,n:r.n})}
+ find(a){for(const r of this.reg.values())if(a>=r.a&&a<r.a+r.n)return r}
+ freeOwner(o){for(const r of[...this.reg.values()])if(r.owner==o)this.free(r.a)}
+ wrap(r,m){const M=this,has=k=>m.permissions.includes(k),ck=()=>{if(!M.reg.has(r.a))throw Error('EFAULT: região liberada');if(r.owner!==m.id&&!(r.shared&&has('mem.share'))&&!has('mem.raw'))throw Error('EACCES: '+(r.name||r.a))};
+  const rg=(o,l)=>{if(o<0||o+l>r.n)throw Error('EFAULT: fora dos limites');return r.a+o};
+  return{addr:r.a,size:r.n,name:r.name,read:(o=0,l=r.n-o)=>{ck();return M.rd(rg(o,l),l)},write:(o,b)=>{ck();M.wr(rg(o,b.length),b)},
+   get:(t,o=0)=>{ck();return M.ldA(t,rg(o,M.sz(t)))},set:(t,o,v)=>{ck();rg(o,M.sz(t));M.stA(t,r.a+o,v)},
+   str:(o=0,l=r.n-o)=>{ck();return new TextDecoder().decode(M.rd(rg(o,l),l)).replace(/\0+$/,'')},setStr:(o,x)=>{ck();const b=new TextEncoder().encode(x);M.wr(rg(o,b.length),b)},
+   fill:v=>{ck();for(let i=0;i<r.n;i++)M.wb(r.a+i,v)},free:()=>{ck();M.free(r.a)}}}}
+S.mem=new Mem();S.cams=new Set();S.mics=new Set();S.strm={};
+S.live=st=>[...st].filter(x=>x.getTracks().some(t=>t.readyState=='live'));
+S.gum=async(m,k,c)=>{S.cfg.grants=S.cfg.grants||{};const key=m.id+':'+k;if(!m.permissions.includes(k))throw Error('Permissão negada: '+k);
+ if(S.cfg.grants[key]===undefined){S.cfg.grants[key]=await S.confirm(m.name+' quer acessar '+(k=='cam'?'a câmera':'o microfone')+'. Permitir?');S.saveCfg()}
+ if(!S.cfg.grants[key])throw Error('Autorização negada: '+k);const st=await navigator.mediaDevices.getUserMedia(c);(k=='cam'?S.cams:S.mics).add(st);(S.strm[m.id]=S.strm[m.id]||[]).push(st);return st};
+S.fetch=async(u,o,pm=[])=>{if(u[0]=='/')return S.fs.exists(u)?new Response(S.fs.readFile(u)):new Response('',{status:404});
+ if(!pm.includes('net'))throw Error('Permissão negada: net');return fetch(u,o)};
+S.fb=v=>{if(!String(v).startsWith('data:image'))return S.toast('fb0: '+String(v).slice(0,40));const d=document.createElement('div');d.style.cssText='position:absolute;inset:0;z-index:70;background:#000 url("'+v+'") center/contain no-repeat';$('#phone').append(d);setTimeout(()=>d.remove(),3000)};
+const t5=S.tree;S.tree=()=>{const t=t5(),M=S.mem,cams=S.live(S.cams),mics=S.live(S.mics);Object.assign(t.dev,{
+ fb0:{get:()=>'fb0: '+innerWidth+'x'+innerHeight+' 32bpp',set:S.fb},
+ mic0:()=>'mic0: '+(mics.length?'ativo ('+mics.length+' stream)':'inativo'),
+ full:{get:()=>'\0'.repeat(16),set:()=>{throw Error('ENOSPC: /dev/full')}},
+ mem:()=>'total: '+M.size+'\nused: '+M.used+'\nregions: '+M.reg.size+'\n'+[...M.reg.values()].map(r=>'0x'+r.a.toString(16)+' '+r.n+' '+r.owner+(r.name?' ['+r.name+']':'')).join('\n')});
+ if(cams.length)t.dev.video0=()=>'video0: '+cams[0].getVideoTracks()[0].label+' '+JSON.stringify(cams[0].getVideoTracks()[0].getSettings());return t};
+/* MediaPlayer (Web Audio) */
+class MediaPlayer{constructor(){this.ctx=new(window.AudioContext||window.webkitAudioContext)();this.g=this.ctx.createGain();this.g.connect(this.ctx.destination);this.loop=false;this.off=0;this.t0=0}
+ async load(src){let ab;if(src[0]=='/')src=S.fs.readFile(src);if(src.startsWith('data:')){const[h,b]=src.split(','),bin=h.includes('base64')?atob(b):decodeURIComponent(b);ab=Uint8Array.from(bin,c=>c.charCodeAt(0)).buffer}else ab=await(await fetch(src)).arrayBuffer();this.buf=await this.ctx.decodeAudioData(ab);return this}
+ _x(){if(this.src){const s=this.src;this.src=null;s.onended=null;try{s.stop()}catch(e){}}}
+ play(){if(!this.buf)return;if(this.ctx.state=='suspended')this.ctx.resume();this._x();const s=this.src=this.ctx.createBufferSource();s.buffer=this.buf;s.loop=this.loop;s.connect(this.g);
+  s.onended=()=>{if(this.src===s){this.src=null;this.off=0;this.onended&&this.onended()}};this.t0=this.ctx.currentTime-this.off;s.start(0,this.off)}
+ pause(){if(this.src){this.off=(this.ctx.currentTime-this.t0)%this.buf.duration;this._x()}}
+ stop(){this.off=0;this._x()}seek(t){const p=!!this.src;this.off=t;if(p)this.play()}
+ set volume(v){this.g.gain.value=v}get volume(){return this.g.gain.value}get duration(){return this.buf?this.buf.duration:0}
+ get currentTime(){return this.src?(this.ctx.currentTime-this.t0)%this.duration:this.off}
+ tone(f=440,d=.3){this.ctx.resume();const o=this.ctx.createOscillator();o.frequency.value=f;o.connect(this.g);o.start();o.stop(this.ctx.currentTime+d)}
+ close(){this._x();try{this.ctx.close()}catch(e){}}}
+/* JSC: ponteiros, async/await (nativo), fetch, mmap/malloc, binder.soj */
+JSC.memenv=env=>{const M=S.mem,mf=(env.sys&&env.sys.manifest)||{id:'jsc',permissions:[]},id=mf.id,pm=mf.permissions,mine=[],has=k=>pm.includes(k);
+ const chk=a=>{if(typeof a!='number'||a<0)throw Error('SIGSEGV: ponteiro inválido');const r=M.find(a);if(!r){if(!has('mem.raw'))throw Error('SIGSEGV: 0x'+a.toString(16));return}
+  if(r.owner!==id&&!(r.shared&&has('mem.share'))&&!has('mem.raw'))throw Error('SIGSEGV: acesso negado a 0x'+a.toString(16))};
+ const mm=()=>{if(!has('mem'))throw Error('Permissão negada: mem')};
+ return{mine,E:{fetch:(u,o)=>S.fetch(u,o,pm),sleep:ms=>new Promise(r=>setTimeout(r,ms)),
+  malloc:n=>{mm();const r=M.alloc(n,id);mine.push(r.a);return r.a},free:a=>{chk(a);M.free(a)},
+  memset:(a,v,n)=>{chk(a);for(let i=0;i<n;i++)M.wb(a+i,v)},memcpy:(d,s,n)=>{chk(d);chk(s);M.wr(d,M.rd(s,n))},
+  mmap:(n,name)=>{mm();if(name){if(!has('mem.share'))throw Error('Permissão negada: mem.share');const r=M.names.get(name);return r?r.a:M.alloc(n,id,name,true).a}const r=M.alloc(n,id);mine.push(r.a);return r.a},
+  munmap:a=>{chk(a);M.free(a)},
+  MEM:{ld:(t,b,i)=>{if(typeof b!='number')return b[i];const a=b+i*M.sz(t);chk(a);return M.ldA(t,a)},st:(t,b,i,v)=>{if(typeof b!='number'){b[i]=v;return v}const a=b+i*M.sz(t);chk(a);M.stA(t,a,v);return v}}}}};
+const c5=JSC.compile;JSC.compile=s=>{const PT={},Q=[],K={char:'c',short:'s',int:'i',long:'i',float:'f',double:'d'};
+ s=s.replace(/^[ \t]*#.*$|"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'/gm,x=>/^\s*#/.test(x)?x:'\u0001'+(Q.push(x)-1)+'\u0002');
+ s=s.replace(/\bsizeof\s*\(\s*(\w+)\s*\)/g,(_,t)=>({char:1,short:2,int:4,long:4,float:4,double:8})[t]||4);
+ s=s.replace(/\b(char|short|int|long|float|double)\b\s*\*+\s*(\w+)/g,(_,t,n)=>{if(n!='argv')PT[n]=K[t];return t+' '+n});
+ for(const n in PT){const t=PT[n],q="MEM.%('"+t+"',"+n;
+  s=s.replace(new RegExp('\\b'+n+'\\s*\\[([^\\]]+)\\]\\s*=(?!=)\\s*([^;]+);','g'),q.replace('%','st')+",($1),($2));").replace(new RegExp('\\b'+n+'\\s*\\[([^\\]]+)\\]','g'),q.replace('%','ld')+",($1))")
+   .replace(new RegExp('\\*\\s*'+n+'\\s*=(?!=)\\s*([^;]+);','g'),q.replace('%','st')+",0,($1));").replace(new RegExp('(\\breturn\\s+)\\*\\s*'+n+'\\b','g'),'$1'+q.replace('%','ld')+',0)')
+   .replace(new RegExp('(?<![\\w)\\]]\\s*)\\*\\s*'+n+'\\b','g'),q.replace('%','ld')+',0)')}
+ return c5(s).replace(/\u0001(\d+)\u0002/g,(_,i)=>Q[i])};
+JSC.mod=(src,hj)=>{const E=JSC.E||{};return new Function('JSC','Math','HJ',...Object.keys(E),JSC.compile(src))(JSC,Math,hj||JSC.HJ,...Object.values(E))};
+JSC.run=(src,args,out,fs,env={})=>{JSC.fs=fs;JSC.c={};const HJ=JSC.HJ=JSC.hj(fs,env,out),X=JSC.memenv(env),E=JSC.E=X.E;
+ const printf=(f,...a)=>out(String(f).replace(/%[-\d.]*[dsfc%]/g,m=>m==='%%'?'%':m.endsWith('d')?parseInt(a.shift()):m.endsWith('f')?Number(a.shift()).toFixed(+(m.match(/\.(\d)/)||[0,6])[1]):a.shift()).replace(/\n$/,''));
+ const fin=()=>X.mine.forEach(a=>{try{S.mem.free(a)}catch(_){}});let r;
+ try{const e=new Function('printf','puts','fs','args','Math','JSC','HJ','libc',...Object.keys(E),JSC.compile(src))(printf,out,fs,args,Math,JSC,HJ,fs.exists('/system/lib/libc.soj')?JSC.lib('libc.soj'):{},...Object.values(E));
+  r=e.main?e.main(args.length,args):undefined}catch(x){fin();throw x}
+ if(r&&r.then)return r.finally(fin);fin();return r};
+/* API: mem, media (player, trocar câmera), fetch */
+const a5=S.api;S.api=p=>{const b=a5(p),m=p.m,has=k=>m.permissions.includes(k),need=k=>{if(!has(k))throw Error('Permissão negada: '+k)};
+ b.fetch=(u,o)=>S.fetch(u,o,m.permissions);
+ b.soj.load=n=>{const src=m.soj&&m.soj[n]!=null?m.soj[n]:b.fs.readFile(n[0]==='/'?n:'/system/lib/'+n);JSC.fs=b.fs;JSC.E=JSC.memenv({sys:b}).E;return JSC.mod(src,JSC.hj(b.fs,{sys:b,cwd:b.dataDir},()=>{}))};
+ b.media={camera:(o={})=>S.gum(m,'cam',{video:o.deviceId?{deviceId:{exact:o.deviceId}}:{facingMode:o.facing||'user'}}),mic:()=>S.gum(m,'mic',{audio:true}),
+  cameras:async()=>{need('cam');return(await navigator.mediaDevices.enumerateDevices()).filter(d=>d.kind=='videoinput').map(d=>({deviceId:d.deviceId,label:d.label}))},
+  switchCamera:async st=>{const cur=st.getVideoTracks()[0].getSettings().facingMode||'user';st.getTracks().forEach(t=>t.stop());return S.gum(m,'cam',{video:{facingMode:cur=='user'?'environment':'user'}})},
+  player:()=>{const pl=new MediaPlayer();(S.pl=S.pl||{})[m.id]=(S.pl[m.id]||[]).concat(pl);return pl}};
+ b.mem={alloc:(n,o={})=>{need('mem');if(o.name||o.shared)need('mem.share');if(n>(64<<20))need('mem.large');return S.mem.wrap(S.mem.alloc(n,m.id,o.name,!!(o.shared||o.name)),m)},
+  open:name=>{need('mem');const r=S.mem.names.get(name);if(!r)throw Error('ENOENT: '+name);if(r.owner!==m.id)need('mem.share');return S.mem.wrap(r,m)},
+  peek:(a,n=1)=>{need('mem.raw');return S.mem.rd(a,n)},poke:(a,bytes)=>{need('mem.raw');S.mem.wr(a,bytes)},
+  stats:()=>{need('mem');return{total:S.mem.size,used:S.mem.used,regions:S.mem.reg.size}}};
+ return b};
+const k5=S.kill;S.kill=pid=>{const p=S.procs[pid];if(p){const id=p.m.id;((S.pl||{})[id]||[]).forEach(x=>x.close());delete(S.pl||{})[id];(S.strm[id]||[]).forEach(st=>st.getTracks().forEach(t=>t.stop()));delete S.strm[id];try{S.mem.freeOwner(id)}catch(e){}}k5(pid)};
+/* arquivos do sistema, /tmp e /system/etc */
+S.fs.rm('/tmp');S.fs.mkdir('/tmp');S.fs.mkdir('/system/etc');
+F('/system/etc/build.prop','ro.build.version=2.5\nro.build.abi=apkx/1,apkx/2\nro.mem.total=1073741824\nro.hardware=webdroid');
+F('/system/etc/hostname','webdroid');F('/system/etc/hosts','127.0.0.1 localhost');F('/system/etc/motd','Bem-vindo ao WebDroid');
+F('/system/lib/binder.soj',`async any bind(string pkg, string comp){ return await HJ.sys.bindService({package:pkg, component:comp}); }
+void start(string pkg, string comp, any extras){ HJ.sys.startActivity({package:pkg, component:comp, extras:extras}); }
+void service(string pkg, string comp){ HJ.sys.startService({package:pkg, component:comp}); }`);
+F('/system/bin/memtest.jsc',`async int main(int argc, char** argv){
+  int *p = malloc(4*sizeof(int));
+  for(int i=0;i<4;i++) p[i]=i*i;
+  printf("p[3]=%d *p=%d\\n", p[3], *p);
+  int *q = mmap(64, "demo.shm"); q[0]=42; printf("shm=%d\\n", q[0]);
+  await sleep(10); free(p); return 0;
+}`);
+F('/system/bin/curl.jsc',`async int main(int argc, char** argv){ let r=await fetch(argv[0]); puts(await r.text()); return 0; }`);
+F('/system/bin/bind.jsc',`#include <binder.soj>
+async int main(int argc, char** argv){ let b=await binder.bind("com.demo.v2","com.demo.CounterService"); printf("inc=%d\\n", await b.inc()); return 0; }`);
+const T7=B.find(x=>x.id=='wd.term');T7.permissions.push('mem','net');T7.code=T7.code.replace("')(this.sys.jsc.run(","')(await this.sys.jsc.run(");
+const K7=B.find(x=>x.id=='wd.cam');K7.code=K7.code.replace('<button>Capturar</button>','<button>Capturar</button><button id="sw">Trocar câmera</button>').replace('v.srcObject=this.st;',"v.srcObject=this.st;this.root.querySelector('#sw').onclick=async()=>{this.st=await this.sys.media.switchCamera(this.st);v.srcObject=this.st};");
+B.forEach(m=>{S.fs.rm('/data/app/'+m.id+'.apkx');F('/system/app/'+m.id+'.apkx',JSON.stringify(S.parse(Object.assign({format:'apkx/1',version:'2.5'},m))))});
+S.load();renderGrid();
+</script><script>
+/* ===== v8: apkx/3 (assets, res, idioma), fs com autorização, Arquivos apkx/2, Navegador, Calendário, armazenamento, scanf ===== */
+const p4=S.parse;S.parse=t=>{const m=typeof t=='string'?JSON.parse(t):t;if(m.format=='apkx/3'&&m.code&&typeof m.code=='object'){m.format='apkx/2';const r=p4(m);r.format='apkx/3';if(r.assets)Object.freeze(r.assets);return r}return p4(m)};
+const e0=S.ensure;S.ensure=async id=>{const m=S.reg[id];
+ if(m&&(m.declared||[]).includes('fs')&&!S.fs.exists('/system/app/'+id+'.apkx')){const g=S.cfg.grants=S.cfg.grants||{},k=id+':fs';
+  if(g[k]===undefined){g[k]=await S.confirm(m.name+' quer acessar seus arquivos. Permitir?');S.saveCfg();S.applyPerms()}}return e0(id)};
+const nrm=p=>{const r=[];for(const x of String(p).split('/')){if(x=='..')r.pop();else if(x&&x!='.')r.push(x)}return '/'+r.join('/')};
+const a6=S.api;S.api=p=>{const b=a6(p),m=p.m,R=m.res||{};
+ const f0=b.fs,own=q=>{q=nrm(q);return q==b.dataDir||q.startsWith(b.dataDir+'/')};b.fs={};
+ ['readFile','writeFile','readdir','mkdir','rm','exists','stat'].forEach(k=>b.fs[k]=(q,...a)=>own(q)?S.fs[k](nrm(q),...a):f0[k](q,...a));
+ b.lang=()=>S.cfg.lang&&S.cfg.lang!='auto'?S.cfg.lang:(navigator.language||'en').slice(0,2);
+ b.res={string:(k,...a)=>{const L=b.lang(),T=R.strings||{},v=(T[L]||{})[k]??(T[L.slice(0,2)]||{})[k]??(T.default||{})[k]??k;return String(v).replace(/\{(\d+)\}/g,(_,i)=>a[i])},
+  color:n=>{const t=S.cfg.theme=='auto'?(matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light'):S.cfg.theme,c=R.colors||{};return(c[t]||{})[n]??(c.light||{})[n]},
+  drawable:n=>{const v=R.drawable&&R.drawable[n];return iconSrc(v)||v},audio:n=>R.audio&&R.audio[n],
+  font:async n=>{const u=R.fonts&&R.fonts[n];if(!u)throw Error('fonte ausente: '+n);const f=new FontFace(m.id+'-'+n,'url('+u+')');await f.load();document.fonts.add(f);return f.family}};
+ b.assets={read:q=>{const v=(m.assets||{})[q];if(v==null)throw Error('ENOENT asset: '+q);return v},list:()=>Object.keys(m.assets||{}),exists:q=>(m.assets||{})[q]!=null};return b};
+/* scanf: await scanf("%d %s") lê uma linha do stdin do Terminal */
+const m7=JSC.memenv;JSC.memenv=env=>{const X=m7(env);X.E.scanf=async f=>{if(!env.read)throw Error('stdin indisponível');const t=(await env.read()).trim().split(/\s+/),sp=String(f).match(/%[dfsc]/g)||['%s'];
+ const v=sp.map((x,i)=>x=='%d'?parseInt(t[i]):x=='%f'?parseFloat(t[i]):x=='%c'?(t[i]||'')[0]:t[i]);return v.length==1?v[0]:v};return X};
+const T8=B.find(x=>x.id=='wd.term');
+T8.code=T8.code.replace("this.out('WebDroid sh - digite help');","this.out((this.sys.fs.exists('/system/etc/motd')?this.sys.fs.readFile('/system/etc/motd')+'\\n':'')+'WebDroid sh - digite help');")
+ .replace("this.out('$ '+l);this.sh(l)","this.out((this.rd?'':'$ ')+l);if(this.rd){const r=this.rd;this.rd=null;r(l)}else this.sh(l)").replace("{cwd:this.cwd,sys:this.sys})","{cwd:this.cwd,sys:this.sys,read:()=>new Promise(r=>{this.rd=r})})");
+F('/system/bin/scan.jsc',`async int main(int argc, char** argv){ puts("Digite dois inteiros:"); let v=await scanf("%d %d"); printf("soma=%d\\n", v[0]+v[1]); return 0; }`);
+F('/system/etc/welcome.html','<h2>WebDroid Browser</h2><p>Sem scripts; imagens e CSS carregados via fetch. Digite uma URL ou <code>/caminho.html</code>.</p><p><a href="/system/etc/welcome.html">recarregar</a></p>');
+/* Config: emojis, idioma, armazenamento */
+const C8=B.find(x=>x.id=='wd.config');
+C8.code=C8.code.replace(/\['Tema: '\+s\.get\('theme'\),.*?'Restaurar de fábrica'\]/s,"['🎨 Tema: '+s.get('theme'),'🖼 Papel de parede','📱 Aplicativos','🏠 Editar tela inicial','💾 Armazenamento usado: '+u,'🔔 Limpar notificações','🌐 Idioma: '+(s.get('lang')||'auto'),'ℹ️ Sobre: WebDroid 3.0 (apkx/1, 2 e 3)','♻️ Restaurar de fábrica']")
+ .replace("if(i==7&&","if(i==8&&").replace("if(i==2)return this.apps();","if(i==2)return this.apps();if(i==4)return this.stor();if(i==6)return this.lang();")
+ .replace(" async apps(){",String.raw` onBack(){if(this.v){this.v=0;this.r();return true}return false}
+ async lang(){const L=['auto','pt','en','es'],k=await this.sys.choose('Idioma',['Automático','Português','English','Español']);if(k>=0)this.sys.settings.set('lang',L[k]);this.r()}
+ stor(){this.v=1;const fs=this.sys.fs,C={img:['🖼 Imagens',0,'#e91e63'],aud:['🎶 Áudio',0,'#ff9800'],app:['📦 Apps',0,'#8bc34a'],doc:['📄 Documentos',0,'#3bb0c9'],dat:['🗂 Dados de apps',0,'#7e57c2'],oth:['Outros',0,'#888']},big=[],seen={},dup=[];let tot=0;
+  const w=p=>{for(const n of fs.readdir(p)){const q=(p=='/'?'':p)+'/'+n;if(['/proc','/sys','/dev','/system'].includes(q))continue;if(fs.stat(q).isDir){w(q);continue}
+   const c=fs.readFile(q),z=c.length,k=q.startsWith('/data/data')?'dat':c.startsWith('data:image')?'img':c.startsWith('data:audio')?'aud':/\.apkx/.test(q)?'app':/\.(txt|md|json|sh|jsc|soj|csv|html)$/.test(q)?'doc':'oth';
+   tot+=z;C[k][1]+=z;big.push([z,q,k]);if(z>20&&seen[c])dup.push([z,q,'dup']);else seen[c]=1}};w('/');big.sort((a,b)=>b[0]-a[0]);
+  const Q=5*1048576,kb=x=>(x/1024).toFixed(1)+' KB';
+  this.root.innerHTML='<div class="bar"><b>Armazenamento</b></div><div style="padding:12px;overflow:auto"><div style="font-size:32px"><b>'+Math.round(tot*100/Q)+'%</b> <small>usado(s) '+kb(tot)+' / 5 MB</small></div><div style="display:flex;height:16px;border-radius:8px;overflow:hidden;background:var(--bt);margin:10px 0">'+Object.values(C).map(c=>'<i style="width:'+(c[1]*100/Q)+'%;background:'+c[2]+'"></i>').join('')+'</div>'
+   +Object.entries(C).map(([k,c])=>'<div class="row" data-k="'+k+'"><span style="color:'+c[2]+'">●</span> '+c[0]+'<span class="x">'+kb(c[1])+' ›</span></div>').join('')
+   +'<div class="row" data-k="dup">📄 Arquivos duplicados<span class="x">'+dup.length+' ›</span></div><div class="row" data-k="big">📦 Arquivos grandes<span class="x">'+kb(big.slice(0,5).reduce((a,b)=>a+b[0],0))+' ›</span></div></div>';
+  this.root.onclick=async e=>{const r=e.target.closest('[data-k]');if(!r)return;const k=r.dataset.k,l=k=='dup'?dup:k=='big'?big.slice(0,10):big.filter(b=>b[2]==k).slice(0,15);
+   if(!l.length)return this.sys.toast('Nada aqui');const i=await this.sys.choose(r.textContent.trim(),l.map(b=>kb(b[0])+'  '+b[1]));if(i<0)return;
+   const j=await this.sys.choose(l[i][1],['Excluir','Abrir com…']);if(j==0&&await this.sys.confirm('Excluir '+l[i][1]+'?')){fs.rm(l[i][1]);return this.stor()}if(j==1)this.sys.startActivity({action:'VIEW',data:l[i][1]})}}
+ async apps(){`);
+/* Arquivos: apkx/2 */
+const fi=B.findIndex(x=>x.id=='wd.files');
+B[fi]={id:'wd.files',format:'apkx/2',name:'Arquivos',icon:'📁',permissions:['fs','apps'],main:'com.wd.files.MainActivity',code:{com:{wd:{files:{MainActivity:String.raw`class MainActivity extends Activity{
+ onCreate(){const d=this.intent.data;this.cwd='/sdcard';try{if(d&&sys.fs.stat(d).isDir)this.cwd=d}catch(e){}this.sel=new Set();this.q='';this.r()}
+ j(n){return(this.cwd=='/'?'':this.cwd)+'/'+n}
+ ic(p,d){if(d)return'📁';if(p.startsWith('/dev/'))return'🔌';let c='';try{c=sys.fs.readFile(p).slice(0,20)}catch(e){}return c.startsWith('data:image')?'🖼':c.startsWith('data:audio')?'🎶':/\.apkx/i.test(p)?'📦':'📄'}
+ list(){const fs=sys.fs;if(!this.q)return fs.readdir(this.cwd).map(n=>this.j(n));const o=[],w=p=>{try{for(const n of fs.readdir(p)){const q=(p=='/'?'':p)+'/'+n;if(n.toLowerCase().includes(this.q))o.push(q);if(o.length<60&&fs.stat(q).isDir)w(q)}}catch(e){}};w(this.cwd);return o}
+ r(){if(this.ed)return this.edit();const fs=sys.fs,s=this.sel;let l=[];try{l=this.list()}catch(e){}
+  this.setContentView('<div class="bar">'+(s.size?'<b>'+s.size+' sel.</b><button data-a="sh">Compartilhar</button><button data-a="ex">Exportar</button><button data-a="rm">Excluir</button><button data-a="cl">✕</button>':'<b style="word-break:break-all">'+esc(this.cwd)+'</b>')+'</div><div class="bar"><input id="q" placeholder="🔍 Pesquisar arquivos" value="'+esc(this.q)+'" style="flex:1"></div><div style="flex:1;overflow:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:6px;padding:8px;align-content:start">'
+   +l.map(p=>{let d=0;try{d=fs.stat(p).isDir}catch(e){}return'<div data-p="'+esc(p)+'" data-d="'+(d?1:0)+'" style="text-align:center;padding:8px 2px;border-radius:12px;word-break:break-all;font-size:12px;'+(s.has(p)?'background:var(--ac);color:#fff':'')+'"><div style="font-size:34px">'+this.ic(p,d)+'</div>'+esc(p.split('/').pop())+'</div>'}).join('')
+   +'</div><div class="bar"><button data-a="up">⬆</button><button data-a="md">+ Pasta</button><button data-a="nf">+ Arquivo</button><button data-a="im">Importar</button></div>');
+  const q=this.$('#q');q.oninput=()=>{this.q=q.value.toLowerCase();clearTimeout(this.tm);this.tm=setTimeout(()=>{this.r();const n=this.$('#q');n.focus();n.setSelectionRange(99,99)},300)};
+  this.root.onclick=e=>this.act(e.target.dataset.a);
+  this.root.querySelectorAll('[data-p]').forEach(el=>{let t;el.onpointerdown=()=>{t=setTimeout(()=>{t=0;this.tog(el.dataset.p)},500)};el.onpointerup=el.onpointerleave=()=>clearTimeout(t);
+   el.onclick=e=>{e.stopPropagation();if(t===0){t=undefined;return}this.tap(el.dataset.p,el.dataset.d=='1')}})}
+ tog(p){this.sel.has(p)?this.sel.delete(p):this.sel.add(p);this.r()}
+ tap(p,d){if(this.sel.size)return this.tog(p);if(d){this.cwd=p;this.q='';return this.r()}this.menu(p)}
+ async menu(p){const apk=/\.apkx/.test(p),k=await sys.choose(p.split('/').pop(),[apk?'Instalar':'Abrir com…','Compartilhar','Editar','Exportar','Excluir','Selecionar']);
+  if(k==0){if(apk){try{sys.toast(sys.apps.install(sys.fs.readFile(p)).name+' instalado')}catch(e){sys.toast(e.message)}}else sys.startActivity({action:'VIEW',data:p})}
+  if(k==1)this.share([p]);if(k==2){this.ed=p;this.r()}if(k==3)sys.exportFile(p);if(k==4)this.rm([p]);if(k==5)this.tog(p)}
+ share(ps){let t='';try{t=sys.fs.readFile(ps[0])}catch(e){}sys.startActivity({action:'SEND',data:ps[0],extras:{text:t,files:ps}})}
+ async rm(ps){if(await sys.confirm('Excluir '+ps.length+' item(ns)?')){ps.forEach(p=>{try{sys.fs.rm(p)}catch(e){sys.toast(e.message)}});this.sel.clear();this.r()}}
+ async act(a){const ps=[...this.sel];
+  if(a=='cl'){this.sel.clear();this.r()}if(a=='sh')this.share(ps);if(a=='ex')ps.forEach(p=>sys.exportFile(p));if(a=='rm')this.rm(ps);
+  if(a=='up'){this.cwd=this.cwd.replace(/\/[^\/]*$/,'')||'/';this.q='';this.r()}
+  if(a=='md'){const n=await sys.prompt('Nome da pasta');if(n){sys.fs.mkdir(this.j(n));this.r()}}
+  if(a=='nf'){const n=await sys.prompt('Nome do arquivo');if(n){sys.fs.writeFile(this.j(n),'');this.r()}}
+  if(a=='im'){await sys.importFile(this.cwd);this.r()}}
+ edit(){let c='';try{c=sys.fs.readFile(this.ed)}catch(e){}this.setContentView('<div class="bar"><b>'+esc(this.ed)+'</b></div><textarea style="flex:1;border-radius:0"></textarea><div class="bar"><button data-a="s">Salvar</button><button data-a="c">Fechar</button></div>');
+  const t=this.$('textarea');t.value=c;this.root.onclick=e=>{const a=e.target.dataset.a;if(a=='s'){try{sys.fs.writeFile(this.ed,t.value);sys.toast('Salvo')}catch(x){sys.toast(x.message)}}if(a=='c'){this.ed=null;this.r()}}}
+ onBack(){if(this.ed){this.ed=null;this.r();return true}if(this.sel.size){this.sel.clear();this.r();return true}if(this.q){this.q='';this.r();return true}if(this.cwd!='/sdcard'&&this.cwd!='/'){this.cwd=this.cwd.replace(/\/[^\/]*$/,'')||'/';this.r();return true}return false}}`}}}}};
+B.push({id:'wd.browser',name:'Navegador',icon:'🌐',permissions:['net','fs','notifications'],main:'Browser',filters:[{action:'VIEW',ext:['html','htm']}],code:String.raw`class Browser extends AndroidApp{
+ onCreate(){this.h=[];this.root.innerHTML='<div class="bar"><button id="b">◀</button><input style="flex:1" placeholder="https://… ou /sdcard/pagina.html"><button id="g">Ir</button></div><div id="v" style="flex:1;overflow:auto;background:#fff;color:#000"></div>';
+  this.u=this.root.querySelector('input');this.sh=this.root.querySelector('#v').attachShadow({mode:'open'});
+  this.root.querySelector('#g').onclick=()=>this.go(this.u.value);this.u.onkeydown=e=>{if(e.key=='Enter')this.go(this.u.value)};
+  this.root.querySelector('#b').onclick=()=>{this.h.pop();const p=this.h.pop();if(p)this.go(p)};
+  this.sh.addEventListener('click',e=>{const a=e.target.closest&&e.target.closest('a[href]');if(!a)return;e.preventDefault();const h=this.R(a.getAttribute('href'),this.cur);
+   if(a.hasAttribute('download')||/\.(zip|apk|apkx|pdf|png|jpe?g|gif|mp3|mp4|json)$/i.test(h.split('?')[0]))this.dl(h);else this.go(h)});
+  this.sh.addEventListener('submit',e=>{e.preventDefault();const f=e.target;this.go(this.R(f.getAttribute('action')||this.cur,this.cur)+'?'+new URLSearchParams(new FormData(f)))});
+  this.go((this.intent&&this.intent.data)||'/system/etc/welcome.html')}
+ onNewIntent(i){this.go(i.data)}
+ R(h,b){const x=new URL(h,b[0]=='/'?'http://fs'+b:b);return x.host=='fs'?x.pathname+x.search:x.href}
+ async txt(u){if(u[0]=='/')return this.sys.fs.readFile(u.split('?')[0]);return(await this.sys.fetch(u)).text()}
+ async res(u){if(u[0]=='/')return this.sys.fs.readFile(u);const b=await(await this.sys.fetch(u)).blob();return new Promise(k=>{const f=new FileReader();f.onload=()=>k(f.result);f.readAsDataURL(b)})}
+ async dl(u,r){try{r=r||await this.sys.fetch(u);const b=await r.blob(),n=u.split('?')[0].split('/').pop()||'download',fs=this.sys.fs;
+   const d=/text|json|xml/.test(b.type)?await b.text():await new Promise(k=>{const f=new FileReader();f.onload=()=>k(f.result);f.readAsDataURL(b)});
+   if(!fs.exists('/sdcard/Download'))fs.mkdir('/sdcard/Download');fs.writeFile('/sdcard/Download/'+n,d);this.sys.notify({title:'Download concluído',text:'/sdcard/Download/'+n})}catch(e){this.sys.toast('Download falhou: '+e.message)}}
+ async go(u){try{u=u.trim();if(!u)return;const loc=u[0]=='/';this.u.value=u;
+  if(loc&&!/\.html?(\?|$)/i.test(u))return this.sys.startActivity({action:'VIEW',data:u});
+  let html;if(loc)html=await this.txt(u);else{const r=await this.sys.fetch(u),ct=r.headers.get('content-type')||'';if(!/html|text/.test(ct))return this.dl(u,r);html=await r.text()}
+  this.cur=u;this.h.push(u);const d=new DOMParser().parseFromString(html,'text/html');d.querySelectorAll('script,iframe,object,embed,base,meta[http-equiv]').forEach(x=>x.remove());
+  for(const el of d.querySelectorAll('*'))for(const a of[...el.attributes])if(/^on/i.test(a.name)||/^\s*javascript:/i.test(a.value))el.removeAttribute(a.name);
+  const sh=this.sh;sh.replaceChildren(...d.head.querySelectorAll('style'),...d.body.childNodes);
+  sh.querySelectorAll('img[src]').forEach(im=>this.res(this.R(im.getAttribute('src'),u)).then(s=>{im.src=s}).catch(()=>{}));
+  d.head.querySelectorAll('link[rel=stylesheet]').forEach(l=>this.txt(this.R(l.getAttribute('href'),u)).then(t=>{const s=document.createElement('style');s.textContent=t.replace(/url\([^)]*\)/g,'none');sh.prepend(s)}).catch(()=>{}))
+ }catch(e){this.sh.innerHTML='<p style="padding:12px;color:#b00">Erro: '+esc(e.message)+'</p>'}}}`});
+B.push({id:'wd.calendar',name:'Calendário',icon:'📅',permissions:['notifications'],main:'Calendar',code:String.raw`class Calendar extends AndroidApp{
+ onCreate(){this.f=this.sys.dataDir+'/events.json';this.d=new Date();this.d.setDate(1);this.ev=[];try{this.ev=JSON.parse(this.sys.fs.readFile(this.f))}catch(e){}this.r();
+  const t=new Date().toISOString().slice(0,10),n=this.ev.filter(e=>e.d==t).length;if(n)this.sys.notify({title:'Calendário',text:n+' evento(s) hoje'})}
+ r(){const y=this.d.getFullYear(),m=this.d.getMonth(),n=new Date(y,m+1,0).getDate(),p=x=>String(x).padStart(2,'0');let c='';for(let i=0;i<this.d.getDay();i++)c+='<div></div>';
+  for(let i=1;i<=n;i++){const k=y+'-'+p(m+1)+'-'+p(i),e=this.ev.filter(x=>x.d==k).length;c+='<button data-d="'+k+'" style="padding:10px 0">'+i+(e?'<br><small>•'+e+'</small>':'')+'</button>'}
+  this.root.innerHTML='<div class="bar"><button data-m="-1">◀</button><b style="flex:1;text-align:center">'+this.d.toLocaleDateString(this.sys.lang(),{month:'long',year:'numeric'})+'</b><button data-m="1">▶</button></div><div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;padding:8px">'+c+'</div>';
+  this.root.onclick=async e=>{const t=e.target.closest('button');if(!t)return;if(t.dataset.m){this.d.setMonth(this.d.getMonth()+ +t.dataset.m);return this.r()}
+   const k=t.dataset.d,l=this.ev.filter(x=>x.d==k),i=await this.sys.choose(k,['+ Novo evento',...l.map(x=>'🗑 '+x.t)]);if(i<0)return;
+   if(i==0){const s=await this.sys.prompt('Título do evento');if(s)this.ev.push({d:k,t:s})}else this.ev.splice(this.ev.indexOf(l[i-1]),1);
+   this.sys.fs.writeFile(this.f,JSON.stringify(this.ev));this.r()}}}`});
+/* demo apkx/3: strings por idioma, cores claro/escuro, assets, api opcional */
+dm.format='apkx/3';dm.res={strings:{default:{hello:'Hello {0}!'},pt:{hello:'Olá {0}!'},es:{hello:'¡Hola {0}!'}},colors:{light:{accent:'#7b3fe4'},dark:{accent:'#b39bff'}}};
+dm.assets={'readme.txt':'asset imutável do Demo'};dm.apis[0].optional=false;
+dm.code.com.demo.MainActivity=dm.code.com.demo.MainActivity.replace('Demo apkx/2',"'+sys.res.string('hello','WebDroid')+'");
+B.forEach(m=>{S.fs.rm('/data/app/'+m.id+'.apkx');F('/system/app/'+m.id+'.apkx',JSON.stringify(S.parse(Object.assign({format:'apkx/1',version:'3.0'},m))))});
+S.fs.mkdir('/sdcard/Download');S.load();renderGrid();
 </script></body></html>
