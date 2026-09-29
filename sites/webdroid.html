@@ -596,4 +596,177 @@ dm.code.com.demo.DemoWidget=String.raw`class DemoWidget{constructor(sys){this.sy
 B.forEach(m=>{S.fs.rm('/data/app/'+m.id+'.apkx');F('/system/app/'+m.id+'.apkx',JSON.stringify(S.parse(Object.assign({format:'apkx/1',version:'2.2'},m))))});
 S.fs.mkdir('/data/data');S.load();Object.keys(S.reg).forEach(id=>S.fs.mkdir('/data/data/'+id));
 S.applyCfg();renderGrid();
+</script><style>
+.wgw{position:relative;margin-bottom:10px}.wgw .wg{margin:0}.mv{position:absolute;right:6px;top:6px;display:flex;gap:4px}.mv button{padding:2px 8px;min-height:28px!important}
+</style>
+<script>
+/* ===== v5: /proc /sys /dev, JSC (struct, #define, tipos JS), HJ, libc.soj, bins, permissões cam/mic, mover widgets ===== */
+S.t0=Date.now();
+S.tree=()=>({proc:Object.assign({uptime:()=>((Date.now()-S.t0)/1000).toFixed(2),version:()=>'WebDroid 2.3 (apkx/1, apkx/2)',
+  meminfo:()=>'procs: '+Object.keys(S.procs).length+'\nheap: '+(performance.memory?Math.round(performance.memory.usedJSHeapSize/1024)+' kB':'n/a')},
+  Object.fromEntries(Object.values(S.procs).map(p=>[p.pid,{cmdline:()=>p.m.id,name:()=>p.m.name,perms:()=>p.m.permissions.join(','),
+   status:()=>'pid: '+p.pid+'\napp: '+p.m.id+'\nworkers: '+p.workers.length+'\nservices: '+Object.keys(p.svcs).length}]))),
+ sys:{kernel:{hostname:()=>'webdroid',version:()=>'2.3'},screen:{width:()=>innerWidth+'',height:()=>innerHeight+''},theme:()=>S.cfg.theme,
+  apps:Object.fromEntries(Object.keys(S.reg).map(i=>[i,()=>JSON.stringify({...S.reg[i],code:'...'})]))},
+ dev:{null:{get:()=>'',set:()=>{}},zero:{get:()=>'\0'.repeat(16)},time:()=>String(Date.now()),tty:{get:()=>'',set:v=>S.toast(v)},
+  random:()=>Array.from(crypto.getRandomValues(new Uint8Array(16)),b=>b.toString(16).padStart(2,'0')).join('')}});
+S.vn=p=>{const a=p.split('/').filter(Boolean);if(!['proc','sys','dev'].includes(a[0]))return;let n=S.tree();for(const k of a){if(typeof n=='function'||n.get||!(k in n))return null;n=n[k]}return n};
+const isF=n=>typeof n=='function'||typeof n.get=='function';
+{const f=S.fs,o={};['readdir','readFile','writeFile','stat','exists','mkdir','rm'].forEach(k=>o[k]=f[k].bind(f));
+ f.readdir=p=>{if(!p.replace(/\/+$/,''))return[...new Set([...o.readdir(p),'dev','proc','sys'])].sort();const n=S.vn(p);if(n===undefined)return o.readdir(p);if(!n||isF(n))throw Error('ENOTDIR: '+p);return Object.keys(n)};
+ f.readFile=p=>{const n=S.vn(p);if(n===undefined)return o.readFile(p);if(!n||!isF(n))throw Error('ENOENT: '+p);return String((n.get||n)())};
+ f.writeFile=(p,d)=>{const n=S.vn(p);if(n===undefined)return o.writeFile(p,d);if(n&&n.set)return n.set(String(d));throw Error('EROFS: '+p)};
+ f.stat=p=>{const n=S.vn(p);if(n===undefined)return o.stat(p);if(!n)throw Error('ENOENT: '+p);const fl=isF(n);return{isDir:!fl,size:fl?String((n.get||n)()).length:0,mtime:Date.now()}};
+ f.exists=p=>{const n=S.vn(p);return n===undefined?o.exists(p):!!n};
+ f.mkdir=p=>{if(S.vn(p)!==undefined)throw Error('EROFS: '+p);o.mkdir(p)};f.rm=p=>{if(S.vn(p)!==undefined)throw Error('EROFS: '+p);o.rm(p)}}
+/* JSC: struct, #define, tipos C e JS */
+JSC.T='int|float|double|char|long|short|unsigned|string|bool|number|boolean|object|any|array|bigint|var';
+JSC.compile=s=>{let T=JSC.T,ex=[],ns=[],D=[];
+ s=s.replace(/^\s*#include\s*[<"]([^>"]+)[>"]\s*$/gm,(_,n)=>'const '+n.replace(/\W.*$/,'')+'=JSC.lib("'+n+'");');
+ s=s.replace(/^[ \t]*#define\s+(\w+)(\(([^)]*)\))?[ \t]+(.*)$/gm,(_,n,_a,a,b)=>{D.push([n,a==null?null:a.split(',').map(x=>x.trim()),b]);return''});
+ for(let k=0;k<3;k++)for(const[n,a,b]of D)s=a==null?s.replace(new RegExp('\\b'+n+'\\b','g'),b):s.replace(new RegExp('\\b'+n+'\\(([^()]*)\\)','g'),(_,x)=>{const v=x.split(',').map(y=>y.trim());return '('+a.reduce((t,p,i)=>t.replace(new RegExp('\\b'+p+'\\b','g'),v[i]),b)+')'});
+ const fl=b=>b.split(';').map(x=>x.trim()).filter(Boolean).map(x=>x.replace(/\[.*\]/,'').split(/[\s*]+/).pop());
+ const mkS=(n,b)=>{ns.push(n);return 'function '+n+'(...a){const o={};'+JSON.stringify(fl(b))+'.forEach((f,i)=>o[f]=a[i]===undefined?0:a[i]);return o}'};
+ s=s.replace(/\btypedef\s+struct\s*\w*\s*\{([^}]*)\}\s*(\w+)\s*;/g,(_,b,n)=>mkS(n,b)).replace(/\bstruct\s+(\w+)\s*\{([^}]*)\}\s*;?/g,(_,n,b)=>mkS(n,b)).replace(/->/g,'.');
+ if(ns.length){const N=ns.join('|');s=s.replace(new RegExp('\\b(?:struct\\s+)?('+N+')\\s+\\**\\s*(\\w+)\\s*=\\s*\\{([^}]*)\\}','g'),'let $2=$1($3)').replace(new RegExp('\\b(?:struct\\s+)?('+N+')\\s+\\**\\s*(\\w+)\\s*;','g'),'let $2=$1();');T+='|'+N}
+ s=s.replace(/\bstruct\s+(\w+)/g,'$1').replace(new RegExp('\\bconst\\s+(?=(?:'+T+')\\b)','g'),'');
+ s=s.replace(new RegExp('\\b(?:'+T+'|void)\\b\\s*\\**\\s*(\\w+)\\s*\\(([^)]*)\\)\\s*\\{','g'),(_,n,p)=>{ex.push(n);return 'function '+n+'('+p.replace(new RegExp('\\b(?:'+T+')\\b\\s*\\**\\s*','g'),'').replace(/\[\]/g,'').replace(/^\s*void\s*$/,'')+'){'});
+ s=s.replace(new RegExp('\\b(?:'+T+')\\b\\s*\\**\\s*(\\w+)','g'),'let $1').replace(/\(\s*(?:int|float|double|char)\s*\)/g,'');
+ return s+'\nreturn {'+ex.join(',')+'};'};
+/* HJ: ponte JS<->JSC/SOJ */
+JSC.hj=(fs,env,out)=>({fs,sys:env.sys,cwd:env.cwd||'/',print:out,toast:t=>S.toast(t),notify:o=>env.sys.notify(o),call:(n,...a)=>window[n](...a),
+ abs(p){if(!p)return this.cwd;if(p[0]!=='/')p=(this.cwd==='/'?'':this.cwd)+'/'+p;const r=[];for(const x of p.split('/')){if(x==='..')r.pop();else if(x&&x!=='.')r.push(x)}return '/'+r.join('/')}});
+JSC.mod=(src,hj)=>new Function('JSC','Math','HJ',JSC.compile(src))(JSC,Math,hj||JSC.HJ);
+JSC.lib=n=>{JSC.c=JSC.c||{};return JSC.c[n]=JSC.c[n]||JSC.mod(JSC.fs.readFile('/system/lib/'+n))};
+JSC.run=(src,args,out,fs,env={})=>{JSC.fs=fs;JSC.c={};const HJ=JSC.HJ=JSC.hj(fs,env,out);
+ const printf=(f,...a)=>out(String(f).replace(/%[-\d.]*[dsfc%]/g,m=>m==='%%'?'%':m.endsWith('d')?parseInt(a.shift()):m.endsWith('f')?Number(a.shift()).toFixed(+(m.match(/\.(\d)/)||[0,6])[1]):a.shift()).replace(/\n$/,''));
+ const e=new Function('printf','puts','fs','args','Math','JSC','HJ','libc',JSC.compile(src))(printf,out,fs,args,Math,JSC,HJ,fs.exists('/system/lib/libc.soj')?JSC.lib('libc.soj'):{});
+ return e.main?e.main(args.length,args):undefined};
+/* API: soj para JS, jsc com env, permissões cam/mic, revoke */
+const a3=S.api;S.api=p=>{const b=a3(p),m=p.m,need=k=>{if(!m.permissions.includes(k))throw Error('Permissão negada: '+k)};
+ b.soj={load:n=>{const src=m.soj&&m.soj[n]!=null?m.soj[n]:b.fs.readFile(n[0]==='/'?n:'/system/lib/'+n);JSC.fs=b.fs;return JSC.mod(src,JSC.hj(b.fs,{sys:b,cwd:b.dataDir},()=>{}))}};
+ b.jsc.run=(src,a,o,env)=>JSC.run(src,a||[],o||(()=>{}),b.fs,{sys:b,cwd:b.dataDir,...env});
+ const med=async(k,c)=>{need(k);S.cfg.grants=S.cfg.grants||{};const key=m.id+':'+k;
+  if(S.cfg.grants[key]===undefined){S.cfg.grants[key]=await S.confirm(m.name+' quer acessar '+(k=='cam'?'a câmera':'o microfone')+'. Permitir?');S.saveCfg()}
+  if(!S.cfg.grants[key])throw Error('Autorização negada: '+k);return navigator.mediaDevices.getUserMedia(c)};
+ b.media={camera:()=>med('cam',{video:true}),mic:()=>med('mic',{audio:true})};
+ b.settings.revoke=id=>{need('settings');for(const k in S.cfg.grants||{})if(k.startsWith(id+':'))delete S.cfg.grants[k];S.saveCfg()};
+ return b};
+/* widgets movíveis (▲▼ no modo de edição) */
+function renderWidgets(){const w=$('#widgets');if(!w)return;S.wg=[];const off=S.cfg.wOff||[],ord=S.cfg.wOrd||[];w.innerHTML='';
+ const it=[['clock']].concat(Object.values(S.reg).filter(m=>m.widget).map(m=>[m.id,m])).filter(x=>!off.includes(x[0]));
+ it.sort((a,b)=>{const i=ord.indexOf(a[0]),j=ord.indexOf(b[0]);return (i<0?99:i)-(j<0?99:j)});
+ it.forEach(([id,m])=>{const box=document.createElement('div'),el=document.createElement('div');box.className='wgw';box.dataset.id=id;el.className='wg';box.append(el);
+  if(S.ed){const c=document.createElement('div');c.className='mv';c.innerHTML='<button data-mv="'+id+'" data-d="-1">▲</button><button data-mv="'+id+'" data-d="1">▼</button>';box.append(c)}
+  w.append(box);if(id=='clock'){el.id='wclock';return}
+  const pr={pid:0,m,workers:[],start:Date.now(),svcs:{},stack:[]};pr.api=S.api(pr);
+  (async()=>{try{let C;if(typeof m.code=='object'){await S.cl(m,pr);C=pr.ld(m.widget)}else C=new Function('AndroidApp',m.code+'\nreturn '+m.widget)(AndroidApp);
+   const o=new C(pr.api);S.wg.push(()=>o.update(el));o.update(el)}catch(e){box.remove()}})()})}
+$('#track').addEventListener('click',e=>{const id=e.target.dataset.mv;if(!id)return;const ids=[...$('#widgets').children].map(b=>b.dataset.id),i=ids.indexOf(id),j=i+ +e.target.dataset.d;
+ if(j<0||j>=ids.length)return;[ids[i],ids[j]]=[ids[j],ids[i]];S.cfg.wOrd=ids;S.saveCfg();renderWidgets()});
+/* /system/lib e /system/bin */
+F('/system/lib/libc.soj',`int strlen(string s){ return s.length; }
+int atoi(string s){ return parseInt(s)||0; }
+double atof(string s){ return parseFloat(s)||0; }
+int abs(int x){ return x<0?-x:x; }
+int max(int a,int b){ return a>b?a:b; }
+int min(int a,int b){ return a<b?a:b; }
+int strcmp(string a,string b){ return a<b?-1:a>b?1:0; }
+string toupper(string s){ return s.toUpperCase(); }
+string tolower(string s){ return s.toLowerCase(); }
+string strcat(string a,string b){ return a+b; }
+string itoa(int n){ return String(n); }
+int rand(){ return Math.floor(Math.random()*32768); }
+double sqrt(double x){ return Math.sqrt(x); }
+double pow(double a,double b){ return Math.pow(a,b); }`);
+const bin=b=>'int main(int argc, char** argv){ '+b+' return 0; }',A0='HJ.abs(argv[0])';
+const BIN={cat:bin('puts(HJ.fs.readFile('+A0+'));'),echo:bin('puts(argv.join(" "));'),mkdir:bin('HJ.fs.mkdir('+A0+');'),rm:bin('HJ.fs.rm('+A0+');'),
+ touch:bin('string p='+A0+'; HJ.fs.writeFile(p, HJ.fs.exists(p)?HJ.fs.readFile(p):"");'),
+ cp:bin('HJ.fs.writeFile(HJ.abs(argv[1]),HJ.fs.readFile('+A0+'));'),mv:bin('HJ.fs.writeFile(HJ.abs(argv[1]),HJ.fs.readFile('+A0+')); HJ.fs.rm('+A0+');'),
+ ps:bin('for(let p of HJ.sys.proc.list()) puts(p.pid+" "+p.name+" "+p.uptime+"s");'),kill:bin('HJ.sys.proc.kill(+argv[0]);'),am:bin('HJ.sys.apps.launch(argv[1]);'),
+ notify:bin('HJ.sys.notify({title:argv[0],text:argv.slice(1).join(" ")});'),install:bin('HJ.sys.apps.install(HJ.fs.readFile('+A0+')); puts("ok");'),
+ struct:`#define SQ(x) ((x)*(x))
+#define N 3
+struct Point { int x; int y; };
+number dist2(Point a){ return SQ(a.x)+SQ(a.y); }
+int main(int argc, char** argv){
+  Point p = {N, 4};
+  string s = "struct+define ok";
+  printf("%s dist2=%d strlen=%d\\n", s, dist2(p), libc.strlen(s));
+  return 0;
+}`,
+ ls:`int main(int argc, char** argv){
+  int lg=0; string p=HJ.cwd; string o="";
+  for(int i=0;i<argc;i++){ if(argv[i]=="-l") lg=1; else p=HJ.abs(argv[i]); }
+  if(!HJ.fs.stat(p).isDir){ puts(p); return 0; }
+  for(let n of HJ.fs.readdir(p)){ let s=HJ.fs.stat(p+"/"+n);
+    if(lg) puts((s.isDir?"d ":"- ")+String(s.size).padStart(6)+" "+n); else o+=n+(s.isDir?"/":"")+"  "; }
+  if(o) puts(o);
+  return 0;
+}`};
+Object.entries(BIN).forEach(([k,v])=>F('/system/bin/'+k+'.jsc',v));
+/* apps: Terminal usa /system/bin; Config; Câmera; Demo com .soj próprio */
+const T2=B.find(x=>x.id=='wd.term');
+T2.code=T2.code.replace(/^ {3}case '(?:ls|cat|echo|mkdir|touch|rm|cp|mv|ps|kill|am|notify|install)':.*\n/gm,'').replace("let r='';","let r='',B='';")
+ .replace("t=>this.out(t))","t=>{if(red)B+=t+'\\n';else this.out(t)},{cwd:this.cwd,sys:this.sys})").replace("r=String(this.sys.jsc.run(","r=(x=>x?'exit '+x:'')(this.sys.jsc.run(")
+ .replace("}catch(e){r='erro: '+e.message}","}catch(e){r='erro: '+e.message}\n  if(B)r=B.replace(/\\n$/,'');");
+const C2=B.find(x=>x.id=='wd.config');C2.code=C2.code.replace("if(j==4)this.sys.toast(","if(j==4)await this.sys.confirm(").replace("this.sys.toast('Dados limpos')","this.sys.settings.revoke(a.id);this.sys.toast('Dados limpos')");
+B.push({id:'wd.cam',name:'Câmera',icon:'📷',permissions:['cam','fs'],main:'Camera',code:String.raw`class Camera extends AndroidApp{async onCreate(){
+ this.root.innerHTML='<video autoplay playsinline muted style="flex:1;min-height:0;width:100%;background:#000"></video><div class="bar"><button>Capturar</button></div>';
+ try{this.st=await this.sys.media.camera();const v=this.root.querySelector('video');v.srcObject=this.st;
+  this.root.querySelector('button').onclick=()=>{const c=document.createElement('canvas');c.width=v.videoWidth;c.height=v.videoHeight;c.getContext('2d').drawImage(v,0,0);
+   if(!this.sys.fs.exists('/sdcard/Pictures'))this.sys.fs.mkdir('/sdcard/Pictures');this.sys.fs.writeFile('/sdcard/Pictures/foto-'+Date.now()+'.png',c.toDataURL());this.sys.toast('Foto salva na Galeria')}}
+ catch(e){this.sys.toast(e.message)}}
+ onDestroy(){this.st&&this.st.getTracks().forEach(t=>t.stop())}}`});
+dm.soj={'util.soj':'int twice(int x){ return x*2; }\nstruct Pair { int a; int b; };\nint sum(Pair p){ return p.a+p.b; }\nPair mk(int a,int b){ Pair p = {a,b}; return p; }'};
+B.forEach(m=>{S.fs.rm('/data/app/'+m.id+'.apkx');F('/system/app/'+m.id+'.apkx',JSON.stringify(S.parse(Object.assign({format:'apkx/1',version:'2.3'},m))))});
+S.load();Object.keys(S.reg).forEach(id=>S.fs.mkdir('/data/data/'+id));renderGrid();
+</script><style>
+#widgets{display:grid;grid-template-columns:repeat(4,1fr);grid-auto-rows:72px;gap:8px;margin-bottom:10px}
+#widgets .wgw{margin:0;min-width:0}#widgets .wg{height:100%;overflow:hidden;padding:8px;margin:0}
+#widgets .mv{inset:auto 2px 2px auto;flex-wrap:wrap;justify-content:flex-end;gap:2px;background:rgba(0,0,0,.55);border-radius:8px;padding:2px;z-index:2}
+#widgets .mv button{padding:0 6px;min-height:26px!important;font-size:12px}
+</style>
+<script>
+/* ===== v6: permissões gerenciáveis no Config; widgets em grade (posição livre, tamanho, vários por app) ===== */
+const p3=S.parse;S.parse=t=>{const m=p3(t);m.declared=m.declared||[...m.permissions];return m};
+S.applyPerms=()=>{const g=S.cfg.grants||{};for(const m of Object.values(S.reg)){const d=m.declared||m.permissions;m.declared=d;m.permissions=d.filter(p=>g[m.id+':'+p]!==false)}};
+const l0=S.load;S.load=()=>{l0();S.applyPerms()};
+const i0=S.install;S.install=(m,d)=>{i0(m,d);S.applyPerms()};
+const a4=S.api;S.api=p=>{const b=a4(p),m=p.m;
+ b.settings.getPerm=(id,q)=>{const g=(S.cfg.grants||{})[id+':'+q];return g===undefined&&!['cam','mic'].includes(q)?true:g};
+ b.settings.setPerm=(id,q,v)=>{if(!m.permissions.includes('settings'))throw Error('Permissão negada: settings');
+  if(id=='wd.config'&&q=='settings')return S.toast('Permissão protegida');S.cfg.grants=S.cfg.grants||{};S.cfg.grants[id+':'+q]=v;S.saveCfg();S.applyPerms()};
+ return b};
+const C3=B.find(x=>x.id=='wd.config');
+C3.code=C3.code.replace("'Desinstalar','Info']","'Desinstalar','Info','Permissões']").replace("if(j==4)await","if(j==5)await this.perms(a);\n  if(j==4)await")
+ .replace(" async apps(){",` async perms(a){const s=this.sys.settings;for(;;){const l=a.declared||a.permissions,st=l.map(p=>s.getPerm(a.id,p));
+  const k=await this.sys.choose('Permissões de '+a.name+' (toque para alternar)',l.map((p,i)=>(st[i]===true?'☑ ':st[i]===false?'☐ ':'❓ ')+p+(st[i]===undefined?' (perguntar)':'')));
+  if(k<0)return;s.setPerm(a.id,l[k],st[k]===false)}}
+ async apps(){`);
+/* widgets: apps podem declarar "widgets":[{class,name,w,h}] (ou "widget":"Classe") */
+const wl=m=>(m.widgets||(m.widget?[m.widget]:[])).map((x,i)=>{x=typeof x=='string'?{class:x}:x;return{id:m.id+'#'+i,cls:x.class,name:x.name||m.name,w:x.w,h:x.h,m}});
+const fits=(V,id,q)=>q.c>=0&&q.r>=0&&q.w>=1&&q.c+q.w<=4&&!Object.entries(V).some(([k,o])=>k!=id&&q.c<o.c+o.w&&o.c<q.c+q.w&&q.r<o.r+o.h&&o.r<q.r+q.h);
+function renderWidgets(){const w=$('#widgets');if(!w)return;S.wg=[];w.innerHTML='';const off=S.cfg.wOff||[],P=S.cfg.wPos=S.cfg.wPos||{};
+ const it=[{id:'clock',w:4,h:1}];Object.values(S.reg).forEach(m=>it.push(...wl(m)));
+ const vis=it.filter(x=>!off.includes(x.id)&&!(x.m&&off.includes(x.m.id))),V=S.wv={};vis.forEach(x=>{if(P[x.id])V[x.id]=P[x.id]});
+ vis.forEach(x=>{if(V[x.id])return;const ww=x.w||2,hh=x.h||1;
+  for(let r=0;r<30&&!V[x.id];r++)for(let c=0;c+ww<=4&&!V[x.id];c++){const q={c,r,w:ww,h:hh};if(fits(V,x.id,q))P[x.id]=V[x.id]=q}});
+ vis.forEach(x=>{const q=V[x.id];if(!q)return;const box=document.createElement('div'),el=document.createElement('div');box.className='wgw';box.dataset.id=x.id;el.className='wg';box.append(el);
+  box.style.gridColumn=(q.c+1)+' / span '+q.w;box.style.gridRow=(q.r+1)+' / span '+q.h;
+  if(S.ed){const c=document.createElement('div');c.className='mv';c.innerHTML=[['l','◀'],['u','▲'],['d','▼'],['r','▶'],['w','↔'],['h','↕']].map(b=>'<button data-a="'+b[0]+'" data-id="'+x.id+'" aria-label="'+b[1]+'">'+b[1]+'</button>').join('');box.append(c)}
+  w.append(box);if(x.id=='clock'){el.id='wclock';return}
+  const m=x.m,pr={pid:0,m,workers:[],start:Date.now(),svcs:{},stack:[]};pr.api=S.api(pr);
+  (async()=>{try{let C;if(typeof m.code=='object'){await S.cl(m,pr);C=pr.ld(x.cls)}else C=new Function('AndroidApp',m.code+'\nreturn '+x.cls)(AndroidApp);
+   const o=new C(pr.api);S.wg.push(()=>o.update(el));o.update(el)}catch(e){box.remove()}})()});S.saveCfg()}
+$('#track').addEventListener('click',e=>{const a=e.target.dataset.a,id=e.target.dataset.id;if(!a||!id||!S.wv||!S.wv[id])return;const q={...S.wv[id]};
+ if(a=='l')q.c--;if(a=='r')q.c++;if(a=='u')q.r--;if(a=='d')q.r++;if(a=='w')q.w=q.w%4+1;if(a=='h')q.h=q.h%3+1;
+ if(fits(S.wv,id,q)){S.cfg.wPos[id]=q;renderWidgets()}else S.toast('Sem espaço nessa posição')});
+$('#e4').onclick=async()=>{const off=S.cfg.wOff=S.cfg.wOff||[],l=[{id:'clock',name:'Relógio',m:{icon:'🕒'}}];Object.values(S.reg).forEach(m=>l.push(...wl(m)));
+ const k=await S.choose('Widgets: toque para ligar/desligar',l.map(x=>(off.includes(x.id)?'☐ ':'☑ ')+x.m.icon+' '+x.name));if(k<0)return;const id=l[k].id;
+ S.cfg.wOff=off.includes(id)?off.filter(x=>x!=id):[...off,id];S.cfg.widgets=true;S.pg=0;renderGrid()};
+dm.widget=undefined;dm.widgets=[{class:'com.demo.DemoWidget',name:'Demo v2',w:2,h:1},{class:'com.demo.CounterWidget',name:'Contador',w:1,h:1}];
+dm.code.com.demo.CounterWidget=String.raw`class CounterWidget{constructor(sys){this.sys=sys;this.n=0}update(el){el.innerHTML='<b style="font-size:24px">'+(++this.n)+'</b><br><small>ticks</small>'}}`;
+B.forEach(m=>{S.fs.rm('/data/app/'+m.id+'.apkx');F('/system/app/'+m.id+'.apkx',JSON.stringify(S.parse(Object.assign({format:'apkx/1',version:'2.4'},m))))});
+S.load();renderGrid();
 </script></body></html>
