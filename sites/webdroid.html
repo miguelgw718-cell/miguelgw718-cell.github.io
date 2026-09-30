@@ -58,7 +58,7 @@ class FS{
  _p(p){return p.split('/').filter(Boolean)}
  _n(p){let n=this.root;for(const s of this._p(p)){if(n.t!=='d'||!(s in n.c))return null;n=n.c[s]}return n}
  _par(p){const a=this._p(p),name=a.pop();return[this._n(a.join('/')),name]}
- save(){try{localStorage.setItem('wd_fs',JSON.stringify(this.root))}catch(e){}}
+ save(){try{localStorage.setItem('wd_fs',JSON.stringify(this.root))}catch(e){window.S&&S.toast('Armazenamento cheio: alterações não salvas')}}
  exists(p){return !!this._n(p)}
  stat(p){const n=this._n(p);if(!n)throw Error('ENOENT: '+p);return{isDir:n.t==='d',size:n.t==='f'?n.d.length:0,mtime:n.m}}
  readdir(p){const n=this._n(p);if(!n||n.t!=='d')throw Error('ENOTDIR: '+p);return Object.keys(n.c).sort()}
@@ -221,7 +221,7 @@ class Intent{constructor(o){Object.assign(this,o)}}
 class JSC{ // mistura de JS + C: tipos C, #include, printf, main(argc,argv)
  static T='int|float|double|char|long|short|unsigned|string|bool';
  static compile(s){const ex=[],T=JSC.T;
-  s=s.replace(/^\s*#include\s*[<"]([^>"]+)[>"]\s*$/gm,(_,n)=>'const '+n.replace(/\W.*$/,'')+'=JSC.lib("'+n+'");');
+  s=s.replace(/^\s*#include\s*[<"]([^>"]+)[>"]\s*$/gm,(_,n)=>'var '+n.replace(/\W.*$/,'')+'=JSC.lib("'+n+'");');
   s=s.replace(new RegExp('\\b(?:'+T+'|void)\\b\\s*\\**\\s*(\\w+)\\s*\\(([^)]*)\\)\\s*\\{','g'),(_,n,p)=>{ex.push(n);return 'function '+n+'('+p.replace(new RegExp('\\b(?:'+T+')\\b\\s*\\**\\s*','g'),'').replace(/\[\]/g,'').replace(/^\s*void\s*$/,'')+'){'});
   s=s.replace(new RegExp('\\b(?:'+T+')\\b\\s*\\**\\s*(\\w+)','g'),'let $1').replace(/\(\s*(?:int|float|double|char)\s*\)/g,'');
   return s+'\nreturn {'+ex.join(',')+'};'}
@@ -234,7 +234,7 @@ S.choose=(t,o)=>new Promise(r=>{const d=$('#dlg');d.innerHTML='<div class="box">
 // classloader do formato apkx/2: code = dict de pacotes; apis = libs por URL com Proxy
 S.cl=async(m,p)=>{const src={},cache={};(function w(o,q){for(const k in o)typeof o[k]=='object'?w(o[k],q+k+'.'):src[q+k]=o[k]})(m.code,'');
  for(const a of m.apis||[]){const key=(a.pkg?a.pkg+'.':'')+a.name;try{await S.script(a.url);cache[key]=new Proxy(class{},{get:(t,k)=>window[a.global][k],construct:(t,x)=>new window[a.global](...x)})}catch(e){if(a.optional!==true)throw Error('API obrigatória indisponível: '+a.name);cache[key]=new Proxy(class{},{get:()=>undefined})}}
- const ld=q=>{if(cache[q])return cache[q];let s=src[q];if(s==null)throw Error('classe não encontrada: '+q);const im=[];
+ const ld=q=>{if(cache[q])return cache[q];let s=src[q];if(s==null)s=S.fwsrc&&S.fwsrc[q];if(s==null)throw Error('classe não encontrada: '+q);const im=[];
   s=s.replace(/^\s*import\s+([\w.]+)\s*;?/gm,(_,n)=>{im.push(n);return''});
   return cache[q]=new Function('Activity','Service','Intent','sys',...im.map(n=>n.split('.').pop()),'return '+s)(Activity,Service,Intent,p.api,...im.map(ld))};
  p.ld=ld};
@@ -249,7 +249,7 @@ S.pushAct=(p,q,intent)=>{const C=p.ld(q),el=document.createElement('div');el.sty
 S.pop=p=>{const t=p.stack.pop();if(!t)return;try{t.inst.onDestroy()}catch(e){}t.el.remove();
  if(!p.stack.length){p.inst=null;return S.kill(p.pid)}const n=p.stack.at(-1);n.el.style.display='flex';p.inst=n.inst;n.inst.onResume()};
 S.launch=async(id,intent)=>{try{const p=await S.ensure(id),v2=typeof p.m.code=='object';
- if(v2&&(intent||!p.stack.length))S.pushAct(p,(intent&&intent.component)||p.m.main,intent);else if(!v2&&intent&&p.inst.onNewIntent)p.inst.onNewIntent(intent);S.show(p)}catch(e){console.warn(e)}};
+ if(v2&&(intent||!p.stack.length)&&((intent&&intent.component)||p.m.main))S.pushAct(p,(intent&&intent.component)||p.m.main,intent);else if(!v2&&intent&&p.inst.onNewIntent)p.inst.onNewIntent(intent);S.show(p)}catch(e){console.warn(e)}};
 S.service=async(i,bind)=>{const p=await S.ensure(i.package||i._from);let s=p.svcs[i.component];
  if(!s){s=p.svcs[i.component]=new(p.ld(i.component))(p.api,p.pid,null,p.m);s.onCreate()}
  if(bind){const b=s.onBind?s.onBind(i):{};return new Proxy(b,{get:(t,k)=>typeof t[k]=='function'?(...a)=>Promise.resolve().then(()=>t[k](...a)):t[k]})}
@@ -265,10 +265,10 @@ S.kill=pid=>{const p=S.procs[pid];if(!p)return;const d=o=>{try{o.onDestroy&&o.on
 const a0=S.api;S.api=p=>{const m=p.m,b=a0(p),need=k=>{if(!m.permissions.includes(k))throw Error('Permissão negada: '+k)};
  return Object.assign(b,{choose:S.choose,startActivity:i=>S.start(i,m.id),startService:i=>S.service({...i,_from:m.id}),bindService:i=>S.service({...i,_from:m.id},true),
   stopService:i=>{const q=S.procs[p.pid],s=q&&q.svcs[i.component];if(s){s.onDestroy&&s.onDestroy();delete q.svcs[i.component]}},finish:()=>S.pop(p),
-  three:{load:()=>(need('graphics'),S.script('https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js').then(()=>THREE))},
+  three:{load:()=>(need('graphics'),S.script(S.fs.exists('/system/framework/three.url')?S.fs.readFile('/system/framework/three.url').trim():'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js').then(()=>THREE))},
   jsc:{run:(s,a,o)=>JSC.run(s,a||[],o||(()=>{}),b.fs),lib:n=>JSC.lib(n)},
   settings:{get:k=>S.cfg[k],set:(k,v)=>{need('settings');S.cfg[k]=v;S.saveCfg();S.applyCfg()},clearNotifs:()=>{need('settings');S.notifs=[];renderNotifs()},reset:()=>{need('settings');localStorage.clear();location.reload()}}})};
-const p0=S.parse;S.parse=t=>{const m=typeof t=='string'?JSON.parse(t):t;if(m.code&&typeof m.code=='object'){if(m.format!=='apkx/2')throw Error('format deve ser "apkx/2"');for(const k of['id','name','main'])if(!m[k])throw Error('campo ausente: '+k);m.permissions=m.permissions||[];m.icon=m.icon||'📦';m.version=m.version||'1.0';return m}return p0(m)};
+const p0=S.parse;S.parse=t=>{const m=typeof t=='string'?JSON.parse(t):t;if(m.code&&typeof m.code=='object'){if(m.format!=='apkx/2')throw Error('format deve ser "apkx/2"');for(const k of['id','name'])if(!m[k])throw Error('campo ausente: '+k);if(m.main===undefined)throw Error('campo ausente: main');m.permissions=m.permissions||[];m.icon=m.icon||'📦';m.version=m.version||'1.0';return m}return p0(m)};
 S.install=(m,d='/data/app')=>{S.fs.writeFile(d+'/'+m.id+'.apkx',JSON.stringify(m));S.reg[m.id]=m;renderGrid();renderWidgets()};
 S.uninstall=id=>{if(S.fs.exists('/system/app/'+id+'.apkx'))return S.toast('App do sistema');Object.values(S.procs).filter(p=>p.m.id===id).forEach(p=>S.kill(p.pid));S.fs.rm('/data/app/'+id+'.apkx');delete S.reg[id];renderGrid();renderWidgets()};
 S.load=()=>{S.reg={};for(const d of['/data/app','/system/app'])for(const f of S.fs.readdir(d)){try{const m=S.parse(S.fs.readFile(d+'/'+f));S.reg[m.id]=m}catch(e){console.warn(f,e)}}};
@@ -362,12 +362,12 @@ class MainActivity extends Activity{async onCreate(){this.setContentView('<div c
  CounterService:String.raw`class CounterService extends Service{onCreate(){this.n=0}onBind(){return{inc:()=>++this.n}}}`,
  AboutActivity:String.raw`class AboutActivity extends Activity{onCreate(){this.setContentView('<div class="c"><h2>Sobre</h2><small>'+JSON.stringify(this.intent.extras)+'</small><button>Voltar</button></div>');this.$('button').onclick=()=>this.finish()}}`}}}});
 /* boot v2: /system */
-['system/app','system/bin','system/lib','system/frameworks'].forEach(p=>S.fs.mkdir(p));
+['system/app','system/bin','system/lib','system/framework'].forEach(p=>S.fs.mkdir(p));
 const F=(p,t)=>S.fs.writeFile(p,t);
 F('/system/lib/math.soj','int square(int x){ return x*x; }\ndouble avg(double a, double b){ return (a+b)/2; }');
 F('/system/bin/hello.jsc','#include <math.soj>\nint main(int argc, char** argv){\n  printf("Ola JSC! square(7)=%d avg=%.2f\\n", math.square(7), math.avg(3,4));\n  return 0;\n}');
 F('/system/bin/fib.jsc','int fib(int n){ if(n<2) return n; return fib(n-1)+fib(n-2); }\nint main(int argc, char** argv){\n  int n = argc>0 ? parseInt(argv[0]) : 10;\n  printf("fib(%d)=%d\\n", n, fib(n));\n  return 0;\n}');
-F('/system/frameworks/three.url','https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js');
+F('/system/framework/three.url','https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js');
 B.forEach(m=>{S.fs.rm('/data/app/'+m.id+'.apkx');F('/system/app/'+m.id+'.apkx',JSON.stringify(S.parse(Object.assign({format:'apkx/1',version:'2.0'},m))))});
 $('#home').innerHTML='<div id="widgets"></div><div id="grid"></div><button id="dbtn">Todos os apps</button>';
 $('#screen').insertAdjacentHTML('beforeend','<div id="drawer"><input id="dq" placeholder="Buscar apps"><div id="dgrid"></div></div>');
@@ -553,7 +553,7 @@ $('#e5').onclick=async()=>{const k=await S.choose('Papel de parede',['Próximo g
 /* busca da gaveta: apps + arquivos */
 S.fw=(p,q,o)=>{try{for(const n of S.fs.readdir(p)){const f=(p==='/'?'':p)+'/'+n;if(n.toLowerCase().includes(q)&&o.length<15)o.push(f);if(S.fs.stat(f).isDir)S.fw(f,q,o)}}catch(e){}};
 $('#dq').oninput=()=>{const q=$('#dq').value.toLowerCase().trim(),dg=$('#dgrid');dg.innerHTML='';
- Object.values(S.reg).filter(m=>m.name.toLowerCase().includes(q)||m.id.toLowerCase().includes(q)).forEach(m=>mk(m,dg,1));
+ Object.values(S.reg).filter(m=>m.main!==null&&(m.name.toLowerCase().includes(q)||m.id.toLowerCase().includes(q))).forEach(m=>mk(m,dg,1));
  if(q.length>1){const o=[];S.fw('/',q,o);o.forEach(f=>{const d=document.createElement('div');d.className='sr';d.style.gridColumn='1/-1';d.textContent=(S.fs.stat(f).isDir?'📁 ':'📄 ')+f;
   d.onclick=()=>{if(!S.fs.stat(f).isDir){$('#drawer').classList.remove('on');S.start({action:'VIEW',data:f})}};dg.append(d)})}};
 $('#dq').onkeydown=e=>{if(e.key==='Enter'){const i=$('#dgrid .ic');if(i)i.click()}};
@@ -622,7 +622,7 @@ const isF=n=>typeof n=='function'||typeof n.get=='function';
 /* JSC: struct, #define, tipos C e JS */
 JSC.T='int|float|double|char|long|short|unsigned|string|bool|number|boolean|object|any|array|bigint|var';
 JSC.compile=s=>{let T=JSC.T,ex=[],ns=[],D=[];
- s=s.replace(/^\s*#include\s*[<"]([^>"]+)[>"]\s*$/gm,(_,n)=>'const '+n.replace(/\W.*$/,'')+'=JSC.lib("'+n+'");');
+ s=s.replace(/^\s*#include\s*[<"]([^>"]+)[>"]\s*$/gm,(_,n)=>'var '+n.replace(/\W.*$/,'')+'=JSC.lib("'+n+'");');
  s=s.replace(/^[ \t]*#define\s+(\w+)(\(([^)]*)\))?[ \t]+(.*)$/gm,(_,n,_a,a,b)=>{D.push([n,a==null?null:a.split(',').map(x=>x.trim()),b]);return''});
  for(let k=0;k<3;k++)for(const[n,a,b]of D)s=a==null?s.replace(new RegExp('\\b'+n+'\\b','g'),b):s.replace(new RegExp('\\b'+n+'\\(([^()]*)\\)','g'),(_,x)=>{const v=x.split(',').map(y=>y.trim());return '('+a.reduce((t,p,i)=>t.replace(new RegExp('\\b'+p+'\\b','g'),v[i]),b)+')'});
  const fl=b=>b.split(';').map(x=>x.trim()).filter(Boolean).map(x=>x.replace(/\[.*\]/,'').split(/[\s*]+/).pop());
@@ -638,7 +638,7 @@ JSC.hj=(fs,env,out)=>({fs,sys:env.sys,cwd:env.cwd||'/',print:out,toast:t=>S.toas
  abs(p){if(!p)return this.cwd;if(p[0]!=='/')p=(this.cwd==='/'?'':this.cwd)+'/'+p;const r=[];for(const x of p.split('/')){if(x==='..')r.pop();else if(x&&x!=='.')r.push(x)}return '/'+r.join('/')}});
 JSC.mod=(src,hj)=>new Function('JSC','Math','HJ',JSC.compile(src))(JSC,Math,hj||JSC.HJ);
 JSC.lib=n=>{JSC.c=JSC.c||{};return JSC.c[n]=JSC.c[n]||JSC.mod(JSC.fs.readFile('/system/lib/'+n))};
-JSC.run=(src,args,out,fs,env={})=>{JSC.fs=fs;JSC.c={};const HJ=JSC.HJ=JSC.hj(fs,env,out);
+JSC.run=(src,args,out,fs,env={})=>{JSC.fs=fs;JSC.c={};JSC.L=fs.exists('/system/lib/libc.soj')?JSC.lib('libc.soj'):{};const HJ=JSC.HJ=JSC.hj(fs,env,out);
  const printf=(f,...a)=>out(String(f).replace(/%[-\d.]*[dsfc%]/g,m=>m==='%%'?'%':m.endsWith('d')?parseInt(a.shift()):m.endsWith('f')?Number(a.shift()).toFixed(+(m.match(/\.(\d)/)||[0,6])[1]):a.shift()).replace(/\n$/,''));
  const e=new Function('printf','puts','fs','args','Math','JSC','HJ','libc',JSC.compile(src))(printf,out,fs,args,Math,JSC,HJ,fs.exists('/system/lib/libc.soj')?JSC.lib('libc.soj'):{});
  return e.main?e.main(args.length,args):undefined};
@@ -734,7 +734,7 @@ S.applyPerms=()=>{const g=S.cfg.grants||{};for(const m of Object.values(S.reg)){
 const l0=S.load;S.load=()=>{l0();S.applyPerms()};
 const i0=S.install;S.install=(m,d)=>{i0(m,d);S.applyPerms()};
 const a4=S.api;S.api=p=>{const b=a4(p),m=p.m;
- b.settings.getPerm=(id,q)=>{const g=(S.cfg.grants||{})[id+':'+q];return g===undefined&&!['cam','mic'].includes(q)?true:g};
+ b.settings.getPerm=(id,q)=>{const g=(S.cfg.grants||{})[id+':'+q];return g===undefined&&!['cam','mic','location','overlay'].includes(q)?true:g};
  b.settings.setPerm=(id,q,v)=>{if(!m.permissions.includes('settings'))throw Error('Permissão negada: settings');
   if(id=='wd.config'&&q=='settings')return S.toast('Permissão protegida');S.cfg.grants=S.cfg.grants||{};S.cfg.grants[id+':'+q]=v;S.saveCfg();S.applyPerms()};
  return b};
@@ -758,7 +758,7 @@ function renderWidgets(){const w=$('#widgets');if(!w)return;S.wg=[];w.innerHTML=
   w.append(box);if(x.id=='clock'){el.id='wclock';return}
   const m=x.m,pr={pid:0,m,workers:[],start:Date.now(),svcs:{},stack:[]};pr.api=S.api(pr);
   (async()=>{try{let C;if(typeof m.code=='object'){await S.cl(m,pr);C=pr.ld(x.cls)}else C=new Function('AndroidApp',m.code+'\nreturn '+x.cls)(AndroidApp);
-   const o=new C(pr.api);S.wg.push(()=>o.update(el));o.update(el)}catch(e){box.remove()}})()});S.saveCfg()}
+   if(gen!=S.wgen)return;const o=new C(pr.api);S.wg.push(()=>o.update(el));o.update(el)}catch(e){box.remove()}})()});S.saveCfg()}
 $('#track').addEventListener('click',e=>{const a=e.target.dataset.a,id=e.target.dataset.id;if(!a||!id||!S.wv||!S.wv[id])return;const q={...S.wv[id]};
  if(a=='l')q.c--;if(a=='r')q.c++;if(a=='u')q.r--;if(a=='d')q.r++;if(a=='w')q.w=q.w%4+1;if(a=='h')q.h=q.h%3+1;
  if(fits(S.wv,id,q)){S.cfg.wPos[id]=q;renderWidgets()}else S.toast('Sem espaço nessa posição')});
@@ -842,7 +842,7 @@ JSC.mod=(src,hj)=>{const E=JSC.E||{};return new Function('JSC','Math','HJ',...Ob
 JSC.run=(src,args,out,fs,env={})=>{JSC.fs=fs;JSC.c={};const HJ=JSC.HJ=JSC.hj(fs,env,out),X=JSC.memenv(env),E=JSC.E=X.E;
  const printf=(f,...a)=>out(String(f).replace(/%[-\d.]*[dsfc%]/g,m=>m==='%%'?'%':m.endsWith('d')?parseInt(a.shift()):m.endsWith('f')?Number(a.shift()).toFixed(+(m.match(/\.(\d)/)||[0,6])[1]):a.shift()).replace(/\n$/,''));
  const fin=()=>X.mine.forEach(a=>{try{S.mem.free(a)}catch(_){}});let r;
- try{const e=new Function('printf','puts','fs','args','Math','JSC','HJ','libc',...Object.keys(E),JSC.compile(src))(printf,out,fs,args,Math,JSC,HJ,fs.exists('/system/lib/libc.soj')?JSC.lib('libc.soj'):{},...Object.values(E));
+ try{const e=new Function('printf','puts','fs','args','Math','JSC','HJ',...Object.keys(E),(/#include\s*[<"]libc\.soj/.test(src)?'':'var libc=JSC.L;')+JSC.compile(src))(printf,out,fs,args,Math,JSC,HJ,...Object.values(E));
   r=e.main?e.main(args.length,args):undefined}catch(x){fin();throw x}
  if(r&&r.then)return r.finally(fin);fin();return r};
 /* API: mem, media (player, trocar câmera), fetch */
@@ -876,7 +876,7 @@ F('/system/bin/memtest.jsc',`async int main(int argc, char** argv){
 F('/system/bin/curl.jsc',`async int main(int argc, char** argv){ let r=await fetch(argv[0]); puts(await r.text()); return 0; }`);
 F('/system/bin/bind.jsc',`#include <binder.soj>
 async int main(int argc, char** argv){ let b=await binder.bind("com.demo.v2","com.demo.CounterService"); printf("inc=%d\\n", await b.inc()); return 0; }`);
-const T7=B.find(x=>x.id=='wd.term');T7.permissions.push('mem','net');T7.code=T7.code.replace("')(this.sys.jsc.run(","')(await this.sys.jsc.run(");
+const T7=B.find(x=>x.id=='wd.term');T7.permissions.push('mem','mem.share','net');T7.code=T7.code.replace("')(this.sys.jsc.run(","')(await this.sys.jsc.run(");
 const K7=B.find(x=>x.id=='wd.cam');K7.code=K7.code.replace('<button>Capturar</button>','<button>Capturar</button><button id="sw">Trocar câmera</button>').replace('v.srcObject=this.st;',"v.srcObject=this.st;this.root.querySelector('#sw').onclick=async()=>{this.st=await this.sys.media.switchCamera(this.st);v.srcObject=this.st};");
 B.forEach(m=>{S.fs.rm('/data/app/'+m.id+'.apkx');F('/system/app/'+m.id+'.apkx',JSON.stringify(S.parse(Object.assign({format:'apkx/1',version:'2.5'},m))))});
 S.load();renderGrid();
@@ -994,4 +994,280 @@ dm.assets={'readme.txt':'asset imutável do Demo'};dm.apis[0].optional=false;
 dm.code.com.demo.MainActivity=dm.code.com.demo.MainActivity.replace('Demo apkx/2',"'+sys.res.string('hello','WebDroid')+'");
 B.forEach(m=>{S.fs.rm('/data/app/'+m.id+'.apkx');F('/system/app/'+m.id+'.apkx',JSON.stringify(S.parse(Object.assign({format:'apkx/1',version:'3.0'},m))))});
 S.fs.mkdir('/sdcard/Download');S.load();renderGrid();
+</script><script>
+/* ===== v9: WebView reutilizável (iframe sandbox), dados x cache, lixeira, home do Arquivos, Galeria multi-seleção, info do app ===== */
+const f7=S.fetch;S.fetch=async(u,o,pm)=>{try{return await f7(u,o,pm)}catch(e){
+ if(u[0]=='/'||!/fetch|network|cors/i.test(e.message))throw e;
+ if(S.cfg.proxyOk===undefined){S.cfg.proxyOk=await S.confirm('Este site bloqueia acesso direto (CORS). Usar um proxy público? O endereço da página passa por esse serviço.');S.saveCfg()}
+ if(!S.cfg.proxyOk)throw Error('Bloqueado por CORS. Ative o proxy em Config → Proxy.');
+ const L=S.cfg.proxy?[S.cfg.proxy]:['https://api.allorigins.win/raw?url=','https://api.codetabs.com/v1/proxy?quest='];let last=e;
+ for(const p of L){try{const r=await f7(p+encodeURIComponent(u),o,pm);if(!r.ok)continue;if(/json/.test(r.headers.get('content-type')||'')&&/api key/i.test(await r.clone().text()))continue;return r}catch(x){last=x}}
+ throw Error('Falha ao carregar via proxy: '+last.message)}};
+S.dirSize=p=>{let n=0;try{for(const f of S.fs.readdir(p)){const q=p+'/'+f;n+=S.fs.stat(q).isDir?S.dirSize(q):S.fs.readFile(q).length}}catch(e){}return n};
+S.usage=()=>{const fs=S.fs,C={img:['🖼 Fotos',0,'#e91e63'],aud:['🎶 Áudio',0,'#ff9800'],doc:['📄 Documentos',0,'#3bb0c9'],app:['📦 Apps',0,'#8bc34a'],cch:['🧹 Cache',0,'#ffd54f'],sys:['⚙️ Sistema',0,'#5c6bc0'],oth:['Outros',0,'#888']},L=[],seen={},dup=[];let tot=0;
+ const w=p=>{for(const n of fs.readdir(p)){const q=(p=='/'?'':p)+'/'+n;if(['/proc','/sys','/dev'].includes(q))continue;if(fs.stat(q).isDir){w(q);continue}
+  const c=fs.readFile(q),z=c.length,k=q.startsWith('/cache')?'cch':q.startsWith('/system')?'sys':q.startsWith('/data/')?'app':c.startsWith('data:image')?'img':c.startsWith('data:audio')?'aud':/\.(txt|md|json|sh|jsc|soj|csv|html)$/i.test(q)?'doc':'oth';
+  tot+=z;C[k][1]+=z;const it={z,p:q,k,t:fs.stat(q).mtime};L.push(it);if(z>20&&k!='sys'&&k!='app'){seen[c]?dup.push(it):seen[c]=1}}};w('/');return{C,L,dup,tot,Q:5*1048576}};
+const u1=S.uninstall;S.uninstall=id=>{if(!S.fs.exists('/system/app/'+id+'.apkx'))S.fs.rm('/cache/'+id);u1(id)};
+/* WebView: iframe sandbox="allow-scripts" (origem opaca) + localStorage/fetch/APIs criados pelo WebView via postMessage */
+const SHIM=(st)=>'<script>(()=>{const S0='+JSON.stringify(st).replace(/</g,'\\u003c')+',P=parent,pend={};let n=0;const call=(t,x)=>new Promise(r=>{const id=++n;pend[id]=r;P.postMessage({wd:1,t,id,...x},"*")});'
+ +'addEventListener("message",e=>{const d=e.data;if(d&&d.wd&&pend[d.id]){pend[d.id](d.v);delete pend[d.id]}});'
+ +'const st=pe=>{const m=pe?S0:{},o={getItem:k=>k in m?m[k]:null,setItem:(k,v)=>{m[k]=String(v);pe&&P.postMessage({wd:1,t:"ls",k,v:String(v)},"*")},removeItem:k=>{delete m[k];pe&&P.postMessage({wd:1,t:"ls",k,v:null},"*")},clear:()=>{for(const k of Object.keys(m))o.removeItem(k)},key:i=>Object.keys(m)[i]??null};Object.defineProperty(o,"length",{get:()=>Object.keys(m).length});return o};'
+ +'Object.defineProperty(window,"localStorage",{value:st(1)});Object.defineProperty(window,"sessionStorage",{value:st(0)});'
+ +'window.fetch=async(u,o)=>{o=o||{};const r=await call("fetch",{url:String(u),o:{method:o.method,headers:o.headers,body:typeof o.body=="string"?o.body:undefined}});if(r.err)throw new TypeError(r.err);return new Response(r.text,{status:r.status})};'
+ +'window.WebDroid={api:new Proxy({},{get:(_,k)=>(...a)=>call("api",{name:k,args:a}).then(r=>{if(r.err)throw Error(r.err);return r.v})})};'
+ +'document.addEventListener("click",e=>{const a=e.target.closest&&e.target.closest("a[href]");if(a){e.preventDefault();P.postMessage({wd:1,t:a.hasAttribute("download")?"dl":"nav",url:a.getAttribute("href")},"*")}},true);'
+ +'document.addEventListener("submit",e=>{e.preventDefault();const f=e.target;P.postMessage({wd:1,t:"nav",url:(f.getAttribute("action")||"")+"?"+new URLSearchParams(new FormData(f))},"*")},true)})()<\/script>';
+class WebView{constructor(sys,m,o={}){this.sys=sys;this.m=m;this.apis=o.apis||{};this.ev={};this.h=[];const f=this.el=document.createElement('iframe');f.setAttribute('sandbox','allow-scripts');f.style.cssText='border:0;width:100%;height:100%;background:#fff';
+  this.mh=e=>{if(e.source===f.contentWindow)this.msg(e.data)};addEventListener('message',this.mh)}
+ on(n,f){this.ev[n]=f;return this}emit(n,...a){this.ev[n]&&this.ev[n](...a)}
+ sk(){let o='local';try{o=new URL(this.cur).origin.replace(/\W/g,'_')}catch(e){}return this.sys.dataDir+'/webview/'+o+'.json'}
+ store(){try{return JSON.parse(S.fs.readFile(this.sk()))}catch(e){return{}}}
+ res(h){const x=new URL(h,this.cur[0]=='/'?'http://fs'+this.cur:this.cur);return x.host=='fs'?x.pathname:x.href}
+ async cget(u,bin){if(u[0]=='/')return S.fs.readFile(u);const k=this.sys.cacheDir+'/wv/'+btoa(unescape(encodeURIComponent(u))).replace(/\W/g,'').slice(-90);if(S.fs.exists(k))return S.fs.readFile(k);
+  const r=await this.sys.fetch(u);let v;if(bin){const b=await r.blob();v=await new Promise(y=>{const f=new FileReader();f.onload=()=>y(f.result);f.readAsDataURL(b)})}else v=await r.text();S.fs.mkdir(this.sys.cacheDir+'/wv');S.fs.writeFile(k,v);return v}
+ async msg(d){if(!d||!d.wd)return;const w=this.el.contentWindow,rep=v=>w.postMessage({wd:1,id:d.id,v},'*');
+  if(d.t=='ls'){const s=this.store();d.v===null?delete s[d.k]:s[d.k]=d.v;S.fs.mkdir(this.sys.dataDir+'/webview');S.fs.writeFile(this.sk(),JSON.stringify(s))}
+  if(d.t=='fetch'){try{const r=await this.sys.fetch(this.res(d.url),d.o);rep({ok:r.ok,status:r.status,text:await r.text()})}catch(e){rep({err:e.message})}}
+  if(d.t=='api'){try{rep({v:await this.apis[d.name](...d.args)})}catch(e){rep({err:e.message})}}
+  if(d.t=='nav')this.load(this.res(d.url));if(d.t=='dl')this.download(this.res(d.url))}
+ async load(u,noh){u=String(u).trim();if(!u)return;const loc=u[0]=='/';try{
+  if(loc&&!/\.html?(\?|$)/i.test(u))return this.emit('open',u);let html;
+  if(loc)html=S.fs.readFile(u.split('?')[0]);else{const r=await this.sys.fetch(u);const ct=r.headers.get('content-type')||'';if(/^image\//.test(ct))html='<img src="'+u+'" style="max-width:100%">';else if(/html/.test(ct)||!ct)html=await r.text();else if(/text|json|xml|javascript/.test(ct)&&!/attachment/i.test(r.headers.get('content-disposition')||''))html='<pre style="white-space:pre-wrap;font:13px monospace">'+esc(await r.text())+'</pre>';else return this.download(u,r)}
+  this.cur=u;if(!noh)this.h.push(u);this.emit('navigate',u);const d=new DOMParser().parseFromString(html,'text/html');
+  d.querySelectorAll('iframe,object,embed,base,meta[http-equiv]').forEach(x=>x.remove());
+  await Promise.all([...[...d.querySelectorAll('script[src]')].map(async x=>{try{x.textContent=await this.cget(this.res(x.getAttribute('src')));x.removeAttribute('src')}catch(e){x.remove()}}),
+   ...[...d.querySelectorAll('link[rel=stylesheet]')].map(async l=>{try{const x=d.createElement('style');x.textContent=(await this.cget(this.res(l.getAttribute('href')))).replace(/url\([^)]*\)/g,'none');l.replaceWith(x)}catch(e){l.remove()}}),
+   ...[...d.querySelectorAll('img[src]')].map(async im=>{try{im.setAttribute('src',await this.cget(this.res(im.getAttribute('src')),1))}catch(e){}})]);
+  this.el.srcdoc='<!doctype html><html><head><meta charset="utf-8">'+SHIM(this.store())+d.head.innerHTML+'</head>'+d.body.outerHTML+'</html>'
+ }catch(e){this.el.srcdoc='<body style="font:14px sans-serif;padding:16px;color:#b00">Erro: '+esc(e.message)+'</body>';this.emit('error',e.message)}}
+ reload(){this.load(this.cur,1)}back(){this.h.pop();const p=this.h.pop();if(p)this.load(p)}
+ async download(u,r){try{r=r||await this.sys.fetch(u);const b=await r.blob(),n=u.split('?')[0].split('/').pop()||'download',v=/text|json|xml/.test(b.type)?await b.text():await new Promise(y=>{const f=new FileReader();f.onload=()=>y(f.result);f.readAsDataURL(b)});
+  if(!S.fs.exists('/sdcard/Download'))S.fs.mkdir('/sdcard/Download');const p='/sdcard/Download/'+n;if(this.ev.download)this.ev.download(p,v);else{S.fs.writeFile(p,v);try{this.sys.notify({title:'Download concluído',text:p})}catch(e){S.toast('Download: '+p)}}}catch(e){this.emit('error','Download falhou: '+e.message)}}
+ close(){removeEventListener('message',this.mh);this.el.remove()}}
+const a7=S.api;S.api=p=>{const b=a7(p),m=p.m;b.cacheDir='/cache/'+m.id;try{S.fs.mkdir(b.cacheDir)}catch(e){}
+ const g0=b.fs;b.fs={};['readFile','writeFile','readdir','mkdir','rm','exists','stat'].forEach(k=>b.fs[k]=(q,...a)=>{const n=nrm(q);return n==b.cacheDir||n.startsWith(b.cacheDir+'/')?S.fs[k](n,...a):g0[k](q,...a)});
+ b.storage={usage:()=>S.usage(),appSize:id=>{const r=S.reg[id]||{},sy=S.fs.exists('/system/app/'+id+'.apkx')?'/system/app/':'/data/app/',f=sy+id+'.apkx';return{data:S.dirSize('/data/data/'+id),cache:S.dirSize('/cache/'+id),apk:S.fs.exists(f)?S.fs.readFile(f).length:0}}};
+ b.webview={create:o=>new WebView(b,m,o)};return b};
+/* Navegador com a API WebView */
+const BR=B.find(x=>x.id=='wd.browser');BR.code=String.raw`class Browser extends AndroidApp{
+ onCreate(){this.root.innerHTML='<div class="bar"><button id="b">◀</button><input style="flex:1" placeholder="https://… ou /sdcard/pagina.html"><button id="g">Ir</button></div><div id="v" style="flex:1;min-height:0"></div>';
+  this.u=this.root.querySelector('input');this.wv=this.sys.webview.create({apis:{hello:n=>'Olá, '+n+'!'}}).on('navigate',x=>{this.u.value=x}).on('error',m=>this.sys.toast(m)).on('open',x=>this.sys.startActivity({action:'VIEW',data:x}));
+  this.root.querySelector('#v').append(this.wv.el);this.root.querySelector('#g').onclick=()=>this.wv.load(this.u.value);this.u.onkeydown=e=>{if(e.key=='Enter')this.wv.load(this.u.value)};this.root.querySelector('#b').onclick=()=>this.wv.back();
+  this.wv.load((this.intent&&this.intent.data)||'/system/etc/welcome.html')}
+ onNewIntent(i){this.wv.load(i.data)}onDestroy(){this.wv.close()}}`;
+F('/system/etc/welcome.html','<body style="font-family:sans-serif;padding:12px"><h2>WebDroid Browser</h2><p id="c"></p><p>Página em iframe isolado: <code>localStorage</code>, <code>fetch</code> e <code>WebDroid.api</code> são criados pelo WebView.</p><script>const n=+(localStorage.getItem("n")||0)+1;localStorage.setItem("n",n);c.textContent="Visitas (localStorage isolado): "+n;WebDroid.api.hello("página").then(t=>c.append(" | API própria: "+t))<\/script></body>');
+S.fs.mkdir('/cache');S.fs.mkdir('/trash');S.fs.mkdir('/sdcard/Music');
+/* Galeria com multi-seleção */
+B.find(x=>x.id=='wd.gallery').code=String.raw`class Gallery extends AndroidApp{onCreate(){this.s=new Set();this.r()}
+ list(){const fs=this.sys.fs,d='/sdcard/Pictures';if(!fs.exists(d))fs.mkdir(d);return fs.readdir(d).map(n=>d+'/'+n).filter(p=>fs.readFile(p).startsWith('data:image'))}
+ r(v){const fs=this.sys.fs,root=this.root,s=this.s;this.v=v||0;
+  if(v){root.innerHTML='<div class="bar"><button id="b">Voltar</button><button id="s">Compartilhar</button><button id="w">Papel</button><button id="x">Apagar</button></div><img style="flex:1;min-height:0;object-fit:contain;width:100%" src="'+fs.readFile(v)+'">';
+   root.querySelector('#b').onclick=()=>this.r();root.querySelector('#w').onclick=()=>{this.sys.settings.set('wallImg',v);this.sys.toast('Papel de parede definido')};
+   root.querySelector('#x').onclick=()=>{fs.rm(v);this.r()};root.querySelector('#s').onclick=()=>this.sys.startActivity({action:'SEND',data:v,extras:{text:v,files:[v]}});root.onclick=null;return}
+  root.innerHTML='<div class="bar">'+(s.size?'<b style="flex:1">'+s.size+' selecionada(s)</b><button data-a="sh">Compartilhar</button><button data-a="rm">Excluir</button><button data-a="cl">✕</button>':'<b style="flex:1">Galeria</b><button data-a="im">+ Importar</button>')+'</div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:2px;overflow:auto">'
+   +this.list().map(p=>'<img data-n="'+p+'" style="width:100%;aspect-ratio:1;object-fit:cover;'+(s.has(p)?'outline:4px solid var(--ac);outline-offset:-4px':'')+'" src="'+fs.readFile(p)+'">').join('')+'</div>';
+  root.onclick=async e=>{const a=e.target.dataset.a;if(a=='im'){await this.sys.importFile('/sdcard/Pictures');return this.r()}if(a=='cl'){s.clear();return this.r()}
+   if(a=='rm'&&await this.sys.confirm('Excluir '+s.size+' foto(s)?')){s.forEach(p=>fs.rm(p));s.clear();return this.r()}if(a=='sh')return this.sys.startActivity({action:'SEND',data:[...s][0],extras:{files:[...s]}})};
+  root.querySelectorAll('[data-n]').forEach(el=>{let t;el.onpointerdown=()=>{t=setTimeout(()=>{t=0;this.tg(el.dataset.n)},500)};el.onpointerup=el.onpointerleave=()=>clearTimeout(t);
+   el.onclick=e=>{e.stopPropagation();if(t===0){t=undefined;return}s.size?this.tg(el.dataset.n):this.r(el.dataset.n)}})}
+ tg(p){this.s.has(p)?this.s.delete(p):this.s.add(p);this.r()}
+ onBack(){if(this.v){this.r();return true}if(this.s.size){this.s.clear();this.r();return true}return false}
+ onNewIntent(i){if(i.data&&this.sys.fs.exists(i.data))this.r(i.data)}}`;
+B.find(x=>x.id=='wd.gallery').permissions=['fs','settings'];
+/* Arquivos: home, lixeira, data/tamanho */
+const FM=B.find(x=>x.id=='wd.files').code.com.wd.files;let fc=FM.MainActivity;
+fc=fc.replace("this.cwd='/sdcard';try{if(d&&","this.home=!d;this.cwd='/sdcard';try{if(d&&").replace("r(){if(this.ed)return this.edit();","r(){if(this.ed)return this.edit();if(this.home)return this.homeR();")
+ .replace("ps.forEach(p=>{try{sys.fs.rm(p)}","ps.forEach(p=>{try{this.trash(p)}").replace("esc(p.split('/').pop())+'</div>'}","esc(this.nm(p))+'<br><small style=\"opacity:.7\">'+this.meta(p)+'</small></div>'}")
+ .replace("async menu(p){const apk=","async menu(p){if(p.startsWith('/trash/'))return this.tmenu(p);const apk=").replace(/return false\}\}$/,"if(!this.home){this.home=1;this.r();return true}return false}}")
+ .replace(" share(ps){",String.raw` nm(p){const b=p.split('/').pop();return p.startsWith('/trash/')&&b.includes('§')?b.split('§')[1].replace(/∕/g,'/').split('/').pop():b}
+ meta(p){try{const s=sys.fs.stat(p);return(s.isDir?'':(s.size/1024).toFixed(1)+' KB · ')+new Date(s.mtime).toLocaleDateString(sys.lang())}catch(e){return''}}
+ trash(p){const fs=sys.fs;if(p.startsWith('/trash/')||fs.stat(p).isDir)return fs.rm(p);if(!fs.exists('/trash'))fs.mkdir('/trash');fs.writeFile('/trash/'+Date.now()+'§'+p.replace(/\//g,'∕'),fs.readFile(p));fs.rm(p)}
+ async tmenu(p){const k=await sys.choose(this.nm(p),['Restaurar','Excluir definitivamente']);if(k==0){const o=p.split('§')[1].replace(/∕/g,'/');sys.fs.writeFile(o,sys.fs.readFile(p));sys.fs.rm(p);this.r()}if(k==1){sys.fs.rm(p);this.r()}}
+ go(p){this.home=0;this.cwd=p;this.q='';this.r()}
+ homeR(){const U=sys.storage.usage(),pc=Math.round(U.tot*100/U.Q),e=[['💾','Armazenamento interno','/sdcard'],['⚙️','Raiz (/)','/'],['📥','Downloads','/sdcard/Download'],['🖼','Fotos','/sdcard/Pictures'],['🎶','Áudio','/sdcard/Music'],['📄','Documentos','/sdcard/Documents'],['🛠','Gerenciar armazenamento','#s'],['🗑','Lixeira','/trash']];
+  this.setContentView('<div style="padding:16px"><div style="font-size:30px"><b>'+pc+'%</b> <small>usado(s)</small></div><div style="height:10px;border-radius:5px;background:var(--bt);overflow:hidden;margin:8px 0"><i style="display:block;height:100%;width:'+pc+'%;background:var(--ac)"></i></div><small>'+(U.tot/1024).toFixed(1)+' KB / 5 MB</small></div><div style="overflow:auto">'+e.map((x,i)=>'<div class="row" data-h="'+i+'" style="padding:16px"><span style="font-size:24px">'+x[0]+'</span> '+x[1]+'</div>').join('')+'</div>');
+  this.root.onclick=ev=>{const r=ev.target.closest('[data-h]');if(!r)return;const x=e[r.dataset.h];if(x[2]=='#s')sys.startActivity({package:'wd.config',component:'x',extras:{page:'storage'}});else{try{sys.fs.readdir(x[2])}catch(_){sys.fs.mkdir(x[2])}this.go(x[2])}}}
+ share(ps){`);
+FM.MainActivity=fc;
+/* Config: info do app (estilo Android), gerenciador de armazenamento por categoria, multi-seleção */
+const CF=B.find(x=>x.id=='wd.config');
+CF.code=CF.code.replace(" onBack(){if(this.v){this.v=0;this.r();return true}return false}"," onBack(){if(this.v==2){this.v=0;this.apps();return true}if(this.v==3){this.stor();return true}if(this.v){this.v=0;this.r();return true}return false}\n onNewIntent(i){if((i.extras||{}).page=='storage')this.stor()}")
+ .replace("const j=await this.sys.choose(a.name,[","return this.appInfo(a);const j=await this.sys.choose(a.name,[")
+ .replace(/\n stor\(\)\{[\s\S]*?\n async apps\(\)\{/,String.raw`
+ kb(x){return(x/1024).toFixed(1)+' KB'}
+ stor(){this.v=1;this.sel=new Set();const U=this.sys.storage.usage(),kb=this.kb;
+  this.root.innerHTML='<div class="bar"><b>Armazenamento</b></div><div style="padding:12px;overflow:auto"><div style="font-size:32px"><b>'+Math.round(U.tot*100/U.Q)+'%</b> <small>usado(s) '+kb(U.tot)+' / 5 MB</small></div><div style="display:flex;height:16px;border-radius:8px;overflow:hidden;background:var(--bt);margin:10px 0">'+Object.values(U.C).map(c=>'<i style="width:'+(c[1]*100/U.Q)+'%;background:'+c[2]+'"></i>').join('')+'</div>'
+   +Object.entries(U.C).map(([k,c])=>'<div class="row" data-k="'+k+'"><span style="color:'+c[2]+'">●</span> '+c[0]+'<span class="x">'+kb(c[1])+' ›</span></div>').join('')
+   +'<div class="row" data-k="dup">📄 Arquivos duplicados<span class="x">'+U.dup.length+' ›</span></div><div class="row" data-k="big">📦 Arquivos grandes ›</div></div>';
+  this.root.onclick=e=>{const r=e.target.closest('[data-k]');if(r)this.catView(r.dataset.k)}}
+ appMgr(){const l=this.sys.apps.list(),z=l.map(a=>{const s=this.sys.storage.appSize(a.id);return[a,s.apk+s.data+s.cache]}).sort((a,b)=>b[1]-a[1]);
+  this.sys.choose('Gerenciar apps',z.map(x=>x[0].icon+' '+x[0].name+' · '+this.kb(x[1]))).then(k=>{if(k>=0)this.appInfo(z[k][0]);else this.stor()})}
+ catView(k){this.v=3;const U=this.sys.storage.usage(),s=this.sel=this.sel||new Set(),kb=this.kb,fs=this.sys.fs;
+  if(k=='sys')return this.sys.toast('Arquivos do sistema não são gerenciáveis');if(k=='app')return this.appMgr();
+  const l=k=='dup'?U.dup:k=='big'?U.L.filter(x=>x.k!='sys'&&x.k!='app').sort((a,b)=>b.z-a.z).slice(0,20):U.L.filter(x=>x.k==k).sort((a,b)=>b.z-a.z),img=k=='img',t=k=='dup'?'Arquivos duplicados':k=='big'?'Arquivos grandes':U.C[k][0];
+  this.root.innerHTML='<div class="bar"><b style="flex:1">'+t+'</b>'+(s.size?'<button data-a="rm">Excluir ('+s.size+')</button><button data-a="cl">✕</button>':k=='cch'&&l.length?'<button data-a="all">Limpar tudo</button>':'')+'</div><div style="overflow:auto;'+(img?'display:grid;grid-template-columns:repeat(3,1fr);gap:3px;padding:3px':'')+'">'
+   +(l.map(x=>img?'<img data-p="'+x.p+'" src="'+fs.readFile(x.p)+'" style="width:100%;aspect-ratio:1;object-fit:cover;'+(s.has(x.p)?'outline:4px solid var(--ac);outline-offset:-4px':'')+'">':'<div class="row" data-p="'+x.p+'" style="'+(s.has(x.p)?'background:var(--ac);color:#fff':'')+'">'+(s.has(x.p)?'☑':'☐')+' '+x.p.split('/').pop()+'<small class="x">'+kb(x.z)+' · '+new Date(x.t).toLocaleDateString(this.sys.lang())+'</small></div>').join('')||'<p style="padding:16px">Nada aqui.</p>')+'</div>';
+  this.root.onclick=async e=>{const a=e.target.dataset.a,p=e.target.closest('[data-p]');
+   if(a=='cl')s.clear();else if(a=='all'){l.forEach(x=>fs.rm(x.p));return this.stor()}
+   else if(a=='rm'){if(await this.sys.confirm('Excluir '+s.size+' arquivo(s)?')){s.forEach(q=>fs.rm(q));return this.stor()}}else if(p){const q=p.dataset.p;s.has(q)?s.delete(q):s.add(q)}this.catView(k)}}
+ appInfo(a){this.v=2;const z=this.sys.storage.appSize(a.id),kb=this.kb,g=(a.declared||[]).filter(p=>this.sys.settings.getPerm(a.id,p)!==false).length;
+  this.root.innerHTML='<div class="bar"><b>Informações do app</b></div><div style="overflow:auto"><div style="text-align:center;padding:24px 0;font-size:64px">'+a.icon+'<div style="font-size:20px;font-weight:600">'+a.name+'</div><small style="font-size:12px">v'+a.version+'</small></div>'
+   +'<div style="display:flex;border-block:1px solid var(--ln)">'+[['abrir','↗','ABRIR'],['rm','🗑','DESINSTALAR'],['stop','⚠','FORÇAR PARADA']].map(x=>'<button data-x="'+x[0]+'" style="flex:1;background:none;color:var(--ac);font-weight:600;font-size:12px;padding:14px 4px;border-radius:0">'+x[1]+'<br>'+x[2]+'</button>').join('')+'</div>'
+   +[['perm','Permissões',g+' de '+(a.declared||[]).length+' permitidas'],['sto','Armazenamento e cache',kb(z.data)+' de dados · '+kb(z.cache)+' de cache · app '+kb(z.apk)],['tec','Informações técnicas',a.id+' · '+(a.format||'apkx/1')]].map(x=>'<div class="row" data-x="'+x[0]+'" style="display:block;padding:16px"><div style="font-size:16px">'+x[1]+'</div><small>'+x[2]+'</small></div>').join('')+'</div>';
+  this.root.onclick=async e=>{const x=(e.target.closest('[data-x]')||{dataset:{}}).dataset.x;if(!x)return;
+   if(x=='abrir')this.sys.apps.launch(a.id);
+   if(x=='rm'&&await this.sys.confirm('Desinstalar '+a.name+'?')){this.sys.apps.uninstall(a.id);this.v=0;return this.apps()}
+   if(x=='stop')this.sys.proc.list().filter(p=>p.id==a.id).forEach(p=>this.sys.proc.kill(p.pid));
+   if(x=='perm')await this.perms(a);
+   if(x=='sto'){const k=await this.sys.choose('Armazenamento e cache',['Limpar dados','Limpar cache']);if(k>=0&&await this.sys.confirm('Limpar '+(k?'cache':'dados')+' de '+a.name+'?')){const d=(k?'/cache/':'/data/data/')+a.id;this.sys.fs.rm(d);this.sys.fs.mkdir(d);if(!k)this.sys.settings.revoke(a.id)}}
+   this.appInfo(a)}}
+ async apps(){`);
+B.forEach(m=>{S.fs.rm('/data/app/'+m.id+'.apkx');F('/system/app/'+m.id+'.apkx',JSON.stringify(S.parse(Object.assign({format:'apkx/1',version:'3.1'},m))))});
+S.load();renderGrid();
+</script><style>
+#phone{max-width:none!important;max-height:none!important;width:100vw;height:100dvh;border:0!important;border-radius:0!important;box-shadow:none!important}body{display:block}
+.wgrid{display:grid;grid-template-columns:repeat(4,1fr);grid-auto-rows:72px;gap:8px;margin-bottom:10px}.wgrid:empty{margin:0}.wgrid .wgw{margin:0;min-width:0}.wgrid .wg{height:100%;overflow:hidden;padding:8px;margin:0}
+.wgrid .mv{position:absolute;inset:auto 2px 2px auto;display:flex;flex-wrap:wrap;justify-content:flex-end;gap:2px;background:rgba(0,0,0,.55);border-radius:8px;padding:2px;z-index:2}.wgrid .mv button{padding:0 6px;min-height:26px!important;font-size:12px}
+@keyframes pop{from{opacity:0;transform:scale(.94)}to{opacity:1;transform:none}}
+.app-root{animation:pop .2s ease-out}#dlg .box{animation:pop .15s}#drawer.on,#recents.on{animation:pop .2s}.ic:active{transform:scale(.92);transition:transform .1s}
+.tiles{display:flex;gap:8px;padding:0 12px 8px}.tile{flex:1;background:#2a2e3a;border-radius:16px;padding:12px 0;text-align:center;color:#fff;font-size:12px}.tile.on{background:var(--ac)}#cc label{display:flex;gap:8px;padding:4px 16px;color:#fff}#cc input{flex:1}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+<script>
+/* ===== v10 ===== */
+/* JSC: arrays, tipos stdint, typedef, headers .h, erros de compilação claros */
+const c9=JSC.compile;JSC.compile=s=>{const TD=[];
+ s=s.replace(/^[ \t]*#include\s*[<"][^>"]+\.h[>"]\s*$/gm,'').replace(/\b(?:static|extern|volatile|register|inline)\s+/g,'');
+ s=s.replace(/\btypedef\s+(?:unsigned\s+|signed\s+)?(?:long\s+)?(?:int|char|short|long|float|double|u?int\w*)\s+(\w+)\s*;/g,(_,n)=>{TD.push(n);return''});
+ for(const n of TD)if(!new RegExp('\\b'+n+'\\b').test(JSC.T))JSC.T+='|'+n;
+ s=s.replace(/\b(?:unsigned|signed)\s+(?=\w)/g,'').replace(/\blong\s+long\b/g,'long').replace(/\b(u?int(?:8|16|32|64)_t|size_t|uint(?:8|16|32|64)|u(?:8|16|32|64))\b/g,'int').replace(/\bNULL\b/g,'0');
+ s=s.replace(new RegExp('\\bconst\\s+(?=(?:'+JSC.T+')\\b)','g'),'');
+ s=s.replace(new RegExp('\\b(?:'+JSC.T+')\\b\\s+(\\w+)\\s*\\[[^\\]]*\\]\\s*=\\s*\\{([^}]*)\\}\\s*;','g'),'let $1=[$2];').replace(new RegExp('\\b(?:'+JSC.T+')\\b\\s+(\\w+)\\s*\\[([^\\]]*)\\]\\s*;','g'),'let $1=new Array($2).fill(0);');
+ return c9(s)};
+/* ambiente, symlinks, frameworks .jsar */
+S.env={PATH:'/system/bin',HOME:'/sdcard',USER:'user',SHELL:'/system/bin/sh',TMPDIR:'/tmp'};try{Object.assign(S.env,JSON.parse(S.fs.readFile('/data/env.json')))}catch(e){}
+FS.prototype._n=function(p,d=0){let n=this.root;const a=this._p(p);for(let i=0;i<a.length;i++){if(n.t=='l'){if(d>8)return null;n=this._n(n.target,d+1);if(!n)return null}if(n.t!='d'||!(a[i] in n.c))return null;n=n.c[a[i]]}if(n.t=='l'){if(d>8)return null;return this._n(n.target,d+1)}return n};
+FS.prototype.symlink=function(t,l){const[a,n]=this._par(l);if(!a||a.t!='d')throw Error('ENOENT: '+l);a.c[n]={t:'l',target:t,m:Date.now()};this.save()};
+FS.prototype.readlink=function(p){const[a,n]=this._par(p),x=a&&a.c&&a.c[n];if(!x||x.t!='l')throw Error('EINVAL: '+p);return x.target};
+FS.prototype.isLink=function(p){const[a,n]=this._par(p);return !!(a&&a.c&&a.c[n]&&a.c[n].t=='l')};
+S.fwsrc={};S.loadFw=()=>{try{for(const f of S.fs.readdir('/system/framework')){if(!f.endsWith('.jsar'))continue;const j=JSON.parse(S.fs.readFile('/system/framework/'+f));(function w(o,q){for(const k in o)typeof o[k]=='object'?w(o[k],q+k+'.'):S.fwsrc[q+k]=o[k]})(j.code||{},'')}}catch(e){console.warn('jsar',e)}};
+S.fs.mkdir('/system/framework');S.fs.writeFile('/system/framework/wd.util.jsar',JSON.stringify({format:'jsar/1',name:'wd.util',code:{wd:{util:{Str:'class Str{static cap(s){return s?s[0].toUpperCase()+s.slice(1):s}static pad(n,l=2){return String(n).padStart(l,"0")}}'}}}}));
+/* permissões legíveis por idioma */
+S.PN={fs:{pt:'Arquivos',en:'Files',es:'Archivos'},cam:{pt:'Câmera',en:'Camera',es:'Cámara'},mic:{pt:'Microfone',en:'Microphone',es:'Micrófono'},net:{pt:'Internet',en:'Internet',es:'Internet'},notifications:{pt:'Notificações',en:'Notifications',es:'Notificaciones'},
+ process:{pt:'Processos',en:'Processes',es:'Procesos'},shell:{pt:'Shell',en:'Shell',es:'Shell'},mem:{pt:'Memória',en:'Memory',es:'Memoria'},'mem.share':{pt:'Memória compartilhada',en:'Shared memory',es:'Memoria compartida'},'mem.raw':{pt:'Memória bruta',en:'Raw memory',es:'Memoria cruda'},'mem.large':{pt:'Memória grande',en:'Large memory',es:'Memoria grande'},
+ settings:{pt:'Configurações',en:'Settings',es:'Ajustes'},apps:{pt:'Gerenciar apps',en:'Manage apps',es:'Gestionar apps'},graphics:{pt:'Gráficos 3D',en:'3D graphics',es:'Gráficos 3D'},location:{pt:'Localização',en:'Location',es:'Ubicación'},boot_complete:{pt:'Iniciar com o sistema',en:'Run at startup',es:'Iniciar con el sistema'},overlay:{pt:'Aparecer sobre outros apps',en:'Display over other apps',es:'Mostrar sobre otras apps'}};
+S.pn=(p,l)=>(S.PN[p]||{})[l]||(S.PN[p]||{}).en||p;
+S.ask=async(m,k,msg)=>{S.cfg.grants=S.cfg.grants||{};const key=m.id+':'+k;if(!m.permissions.includes(k))throw Error('Permissão negada: '+k);if(S.cfg.grants[key]===undefined){S.cfg.grants[key]=await S.confirm(msg);S.saveCfg()}if(!S.cfg.grants[key])throw Error('Autorização negada: '+k)};
+const a8=S.api;S.api=p=>{const b=a8(p),m=p.m,need=k=>{if(!m.permissions.includes(k))throw Error('Permissão negada: '+k)};
+ b.settings.permName=q=>S.pn(q,b.lang());
+ b.env={get:k=>S.env[k],set:(k,v)=>{S.env[k]=String(v);S.fs.writeFile('/data/env.json',JSON.stringify(S.env))},list:()=>Object.entries(S.env)};
+ b.fs.symlink=(t,l)=>{need('fs');S.fs.symlink(t,l)};b.fs.readlink=l=>{need('fs');return S.fs.readlink(l)};
+ b.location={get:async()=>{await S.ask(m,'location',m.name+' quer acessar sua localização. Permitir?');return new Promise((ok,no)=>navigator.geolocation.getCurrentPosition(q=>ok({lat:q.coords.latitude,lon:q.coords.longitude,acc:q.coords.accuracy}),e=>no(Error(e.message))))}};
+ b.overlay={show:async(html,o={})=>{await S.ask(m,'overlay',m.name+' quer aparecer sobre outros apps. Permitir?');const el=document.createElement('div');el.style.cssText='position:absolute;z-index:65;left:'+(o.x||20)+'px;top:'+(o.y||100)+'px;background:rgba(0,0,0,.85);color:#fff;padding:10px;border-radius:12px;max-width:80%';el.innerHTML=html;$('#phone').append(el);return{el,close:()=>el.remove()}}};
+ return b};
+const m10=JSC.memenv;JSC.memenv=env=>{const X=m10(env);X.E.getenv=k=>S.env[k]??'';return X};
+const s0=S.start;S.start=(i,f)=>{if(i.action)i={...i,action:String(i.action).replace(/^android\.intent\.action\./,'')};return s0(i,f)};
+const p5=S.parse;S.parse=t=>{const m=p5(t);(m.filters||[]).forEach(f=>{f.action=String(f.action).replace(/^android\.intent\.action\./,'')});return m};
+/* /proc/<pid> extra, /dev/input */
+S.inlog=[];const il=(t,e)=>{S.inlog.push(t+' '+Math.round(e.clientX||0)+' '+Math.round(e.clientY||0)+' '+(e.key||'')+' '+Date.now());if(S.inlog.length>60)S.inlog.shift()};
+addEventListener('pointerdown',e=>il('DOWN',e),true);addEventListener('pointerup',e=>il('UP',e),true);addEventListener('keydown',e=>il('KEY',e),true);
+const t10=S.tree;S.tree=()=>{const t=t10();for(const pid in t.proc){const p=S.procs[pid];if(!p)continue;Object.assign(t.proc[pid],{stat:()=>'State: S\nUptime: '+Math.floor((Date.now()-p.start)/1000)+'s\nActivities: '+p.stack.length+'\nThreads: '+p.workers.length,
+ environ:()=>Object.entries(S.env).map(x=>x.join('=')).join('\n'),maps:()=>[...S.mem.reg.values()].filter(r=>r.owner==p.m.id).map(r=>'0x'+r.a.toString(16)+' '+r.n+(r.name?' '+r.name:'')).join('\n'),
+ services:()=>Object.keys(p.svcs).join('\n'),format:()=>p.m.format||'apkx/1'})}
+ t.dev.input={event0:()=>S.inlog.filter(x=>!x.startsWith('KEY')).join('\n'),event1:()=>S.inlog.filter(x=>x.startsWith('KEY')).join('\n')};return t};
+/* widgets movíveis entre páginas */
+const fit2=(V,id,q)=>q.c>=0&&q.r>=0&&q.c+q.w<=4&&!Object.entries(V).some(([k,o])=>k!=id&&q.c<o.c+o.w&&o.c<q.c+q.w&&q.r<o.r+o.h&&o.r<q.r+q.h);
+function renderWidgets(){const tr=$('#track');if(!tr)return;const old=$('#widgets');if(old)old.remove();tr.querySelectorAll('.wgrid').forEach(g=>g.remove());S.wg=[];const gen=S.wgen=(S.wgen||0)+1;const pgs=[...tr.children],grids=pgs.map(pg=>{const g=document.createElement('div');g.className='wgrid';pg.prepend(g);return g});
+ if(!pgs.length)return;const off=S.cfg.wOff||[],P=S.cfg.wPos=S.cfg.wPos||{};if(S.cfg.widgets===false)return;
+ const it=[{id:'clock',w:4,h:1}];Object.values(S.reg).forEach(m=>it.push(...wl(m)));const vis=it.filter(x=>!off.includes(x.id)&&!(x.m&&off.includes(x.m.id)));
+ vis.forEach(x=>{const q=P[x.id];if(q&&(q.p==null||q.p>=pgs.length))q.p=0});
+ vis.forEach(x=>{if(P[x.id])return;const ww=x.w||2,hh=x.h||1,pg=S.pg<pgs.length?S.pg:0,V={};vis.forEach(y=>{if(P[y.id]&&P[y.id].p==pg)V[y.id]=P[y.id]});
+  for(let r=0;r<30&&!P[x.id];r++)for(let c=0;c+ww<=4&&!P[x.id];c++){const q={c,r,w:ww,h:hh,p:pg};if(fit2(V,x.id,q))P[x.id]=q}});S.wv=P;
+ vis.forEach(x=>{const q=P[x.id];if(!q)return;const box=document.createElement('div'),el=document.createElement('div');box.className='wgw';box.dataset.id=x.id;el.className='wg';box.append(el);
+  box.style.gridColumn=(q.c+1)+' / span '+q.w;box.style.gridRow=(q.r+1)+' / span '+q.h;
+  if(S.ed){const c=document.createElement('div');c.className='mv';c.innerHTML=[['l','◀'],['u','▲'],['d','▼'],['r','▶'],['w','↔'],['h','↕'],['p','⇥']].map(b=>'<button data-k="'+b[0]+'" data-w="'+x.id+'" aria-label="'+b[1]+'">'+b[1]+'</button>').join('');box.append(c)}
+  grids[q.p].append(box);if(x.id=='clock'){el.id='wclock';return}
+  const m=x.m,pr={pid:0,m,workers:[],start:Date.now(),svcs:{},stack:[]};pr.api=S.api(pr);
+  (async()=>{try{let C;if(typeof m.code=='object'){await S.cl(m,pr);C=pr.ld(x.cls)}else C=new Function('AndroidApp',m.code+'\nreturn '+x.cls)(AndroidApp);const o=new C(pr.api);S.wg.push(()=>o.update(el));o.update(el)}catch(e){box.remove()}})()});S.saveCfg()}
+$('#track').addEventListener('click',e=>{const k=e.target.dataset.k,id=e.target.dataset.w;if(!k||!id||!S.wv||!S.wv[id])return;const q={...S.wv[id]},L=S.cfg.pages.length;
+ if(k=='l')q.c--;if(k=='r')q.c++;if(k=='u')q.r--;if(k=='d')q.r++;if(k=='w')q.w=q.w%4+1;if(k=='h')q.h=q.h%3+1;
+ if(k=='p'){q.p=(q.p+1)%L;delete S.cfg.wPos[id];const V={};Object.entries(S.wv).forEach(([a,o])=>{if(o.p==q.p)V[a]=o});let ok=0;for(let r=0;r<30&&!ok;r++)for(let c=0;c+q.w<=4&&!ok;c++){const z={...q,c,r};if(fit2(V,id,z)){S.cfg.wPos[id]=z;ok=1}}S.pg=q.p;go(S.pg);return renderWidgets()}
+ const V={};Object.entries(S.wv).forEach(([a,o])=>{if(o.p==q.p)V[a]=o});if(fit2(V,id,q)){S.cfg.wPos[id]=q;renderWidgets()}else S.toast('Sem espaço nessa posição')});
+/* apps com main:null ficam fora da home e da gaveta */
+const rg=window.renderGrid;window.renderGrid=function(){const h=Object.values(S.reg).filter(m=>m.main===null);h.forEach(m=>delete S.reg[m.id]);try{rg()}finally{h.forEach(m=>{S.reg[m.id]=m})}renderWidgets()};
+/* central de controle */
+S.vol=1;Object.defineProperty(MediaPlayer.prototype,'volume',{set(v){this.vv=v;this.g.gain.value=v*S.vol},get(){return this.vv??1}});
+const cc=document.createElement('div');cc.id='cc';cc.innerHTML='<div class="tiles"><div class="tile" data-t="theme">🌓<br>Tema</div><div class="tile" data-t="dnd">🔕<br>Silêncio</div><div class="tile" data-t="cfg">⚙️<br>Config</div><div class="tile" data-t="home">🏠<br>Editar</div></div><label>🔆<input type="range" id="br" min="30" max="100" value="100" aria-label="Brilho"></label><label>🔊<input type="range" id="vl" min="0" max="100" value="100" aria-label="Volume"></label>';
+$('#shade .hd').after(cc);
+cc.onclick=e=>{const t=e.target.closest('[data-t]');if(!t)return;const k=t.dataset.t;if(k=='theme'){const c=['auto','light','dark'];S.cfg.theme=c[(c.indexOf(S.cfg.theme)+1)%3];S.saveCfg();S.applyCfg()}
+ if(k=='dnd'){S.dnd=!S.dnd;t.classList.toggle('on',S.dnd);if(S.dnd)$('#heads').classList.remove('on')}if(k=='cfg'){$('#shade').classList.remove('on');S.launch('wd.config')}if(k=='home'){$('#shade').classList.remove('on');S.home();S.edit(true)}};
+$('#br').oninput=e=>{$('#phone').style.filter='brightness('+e.target.value/100+')'};$('#vl').oninput=e=>{S.vol=e.target.value/100;for(const l of Object.values(S.pl||{}))l.forEach(p=>{p.volume=p.volume})};
+const n0=S.notify;S.notify=(m,o)=>{const r=n0(m,o);if(S.dnd)$('#heads').classList.remove('on');return r};
+/* apps: Notas, Navegador completos; Config: proxy, cache por app, nomes de permissões */
+B.find(x=>x.id=='wd.notes').code=String.raw`class Notes extends AndroidApp{
+ onCreate(){this.p=null;this.dirty=false;this.root.innerHTML='<div class="bar"><button data-a="n">Novo</button><button data-a="o">Abrir</button><button data-a="s">Salvar</button><button data-a="a">Salvar como</button><button data-a="f">Buscar</button></div><div id="pp" style="padding:4px 12px;font-size:12px;opacity:.7"></div><textarea style="flex:1;border-radius:0"></textarea><div id="st" style="padding:4px 12px;font-size:12px;opacity:.7"></div>';
+  this.t=this.root.querySelector('textarea');this.pp=this.root.querySelector('#pp');this.st=this.root.querySelector('#st');this.t.oninput=()=>{this.dirty=true;this.info()};
+  this.root.onclick=async e=>{const a=e.target.dataset.a;if(!a)return;
+   if(a=='n'&&await this.ok()){this.p=null;this.t.value='';this.dirty=false;this.info()}
+   if(a=='o'&&await this.ok()){const fs=this.sys.fs,d='/sdcard/Documents',l=fs.exists(d)?fs.readdir(d).filter(n=>/\.(txt|md|sh|json|jsc|soj)$/.test(n)):[],k=await this.sys.choose('Abrir',l);if(k>=0)this.open(d+'/'+l[k])}
+   if(a=='s')this.save();if(a=='a')this.saveAs();
+   if(a=='f'){const q=await this.sys.prompt('Buscar');if(q){const v=this.t.value,i=v.indexOf(q,this.t.selectionEnd),j=i<0?v.indexOf(q):i;if(j<0)this.sys.toast('Não encontrado');else{this.t.focus();this.t.setSelectionRange(j,j+q.length)}}}};this.info()}
+ info(){const v=this.t.value;this.pp.textContent=(this.p||'Sem título')+(this.dirty?' •':'');this.st.textContent=v.length+' caracteres · '+(v.trim()?v.trim().split(/\s+/).length:0)+' palavras'}
+ async ok(){return !this.dirty||await this.sys.confirm('Descartar alterações?')}
+ open(p){this.p=p;this.t.value=this.sys.fs.readFile(p);this.dirty=false;this.info()}
+ save(){if(!this.p)return this.saveAs();try{this.sys.fs.writeFile(this.p,this.t.value);this.dirty=false;this.info();this.sys.toast('Salvo em '+this.p)}catch(e){this.sys.toast(e.message)}}
+ async saveAs(){const n=await this.sys.prompt('Salvar como (caminho)',this.p||'/sdcard/Documents/nota.txt');if(n){this.p=n;this.save()}}
+ onNewIntent(i){if(i.data)this.open(i.data);else if((i.extras||{}).text!=null){this.p=null;this.t.value=i.extras.text;this.dirty=true;this.info()}}}`;
+const BW=B.find(x=>x.id=='wd.browser');BW.code=String.raw`class Browser extends AndroidApp{
+ jl(f){try{return JSON.parse(this.sys.fs.readFile(f))}catch(e){return[]}}sv(f,v){this.sys.fs.writeFile(f,JSON.stringify(v))}
+ onCreate(){this.bf=this.sys.dataDir+'/bookmarks.json';this.hf=this.sys.dataDir+'/history.json';this.bm=this.jl(this.bf);this.hs=this.jl(this.hf);
+  this.root.innerHTML='<div class="bar"><button id="b">◀</button><button id="r">⟳</button><input style="flex:1;min-width:0" placeholder="https://… ou /caminho.html"><button id="g">Ir</button><button id="m">⋮</button></div><div id="v" style="flex:1;min-height:0"></div>';
+  this.u=this.root.querySelector('input');this.wv=this.sys.webview.create({apis:{hello:n=>'Olá, '+n+'!'}}).on('navigate',x=>{this.u.value=x;this.hs=[x,...this.hs.filter(y=>y!=x)].slice(0,50);this.sv(this.hf,this.hs)}).on('error',m=>this.sys.toast(m)).on('open',x=>this.sys.startActivity({action:'VIEW',data:x}));
+  this.root.querySelector('#v').append(this.wv.el);const q=s=>this.root.querySelector(s);q('#g').onclick=()=>this.wv.load(this.u.value);q('#r').onclick=()=>this.wv.reload();q('#b').onclick=()=>this.wv.back();q('#m').onclick=()=>this.menu();
+  this.u.onkeydown=e=>{if(e.key=='Enter')this.wv.load(this.u.value)};this.wv.load((this.intent&&this.intent.data)||'/system/etc/welcome.html')}
+ async menu(){const c=this.u.value,has=this.bm.includes(c),k=await this.sys.choose('Menu',['Início',has?'★ Remover favorito':'☆ Favoritar','Favoritos','Histórico','Limpar histórico','Baixar esta página']);
+  if(k==0)this.wv.load('/system/etc/welcome.html');if(k==1){this.bm=has?this.bm.filter(x=>x!=c):[c,...this.bm];this.sv(this.bf,this.bm)}
+  if(k==2||k==3){const l=k==2?this.bm:this.hs,i=await this.sys.choose(k==2?'Favoritos':'Histórico',l);if(i>=0)this.wv.load(l[i])}
+  if(k==4){this.hs=[];this.sv(this.hf,[])}if(k==5)this.wv.download(c)}
+ onNewIntent(i){this.wv.load(i.data)}onDestroy(){this.wv.close()}}`;
+const C10=B.find(x=>x.id=='wd.config');
+C10.code=C10.code.replace("'♻️ Restaurar de fábrica']","'♻️ Restaurar de fábrica','🛡 Proxy do navegador: '+(s.get('proxyOk')===false?'desligado':'ligado')]").replace("if(i==4)return this.stor();","if(i==4)return this.stor();if(i==9)return this.proxy();")
+ .replace("'❓ ')+p+(st[i]","'❓ ')+s.permName(p)+(st[i]").replace("if(k=='app')return this.appMgr();","if(k=='app')return this.appMgr();if(k=='cch')return this.cchView();")
+ .replace("[['abrir','↗','ABRIR'],['rm','🗑','DESINSTALAR'],['stop','⚠','FORÇAR PARADA']]","[...(a.main===null?[]:[['abrir','↗','ABRIR']]),['rm','🗑','DESINSTALAR'],['stop','⚠','FORÇAR PARADA']]")
+ .replace(" kb(x){",String.raw` async proxy(){const s=this.sys.settings,k=await this.sys.choose('Proxy do navegador',[s.get('proxyOk')===false?'✅ Ativar proxy':'⛔ Desativar proxy','✏️ Definir endereço ('+(s.get('proxy')||'padrão')+')','↩ Restaurar padrão']);
+  if(k==0)s.set('proxyOk',s.get('proxyOk')===false);if(k==1){const p=await this.sys.prompt('Prefixo do proxy (ex.: https://api.allorigins.win/raw?url=)',s.get('proxy')||'');if(p!==null)s.set('proxy',p.trim())}
+  if(k==2){s.set('proxy','');s.set('proxyOk',undefined)}this.r()}
+ cchView(){this.v=3;const l=this.sys.apps.list().map(a=>[a,this.sys.storage.appSize(a.id).cache]).filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1]);
+  this.root.innerHTML='<div class="bar"><b style="flex:1">🧹 Cache</b>'+(l.length?'<button data-a="all">Limpar tudo</button>':'')+'</div><div style="overflow:auto">'+(l.map((x,i)=>'<div class="row" style="cursor:default">'+x[0].icon+' '+x[0].name+' • '+this.kb(x[1])+' de cache<button class="x" data-c="'+i+'">apagar</button></div>').join('')||'<p style="padding:16px">Nenhum cache.</p>')+'</div>';
+  this.root.onclick=async e=>{const c=e.target.dataset.c,a=e.target.dataset.a,fs=this.sys.fs,wipe=id=>{fs.rm('/cache/'+id);fs.mkdir('/cache/'+id)};
+   if(c!=null&&await this.sys.confirm('Apagar cache de '+l[c][0].name+'?'))wipe(l[c][0].id);else if(a=='all'&&await this.sys.confirm('Apagar todo o cache?'))l.forEach(x=>wipe(x[0].id));else return;this.cchView()}}
+ kb(x){`);
+const T10=B.find(x=>x.id=='wd.term');
+T10.code=T10.code.replace("async sh(l){","async sh(l){l=l.replace(/\\$(\\w+)/g,(_,k)=>this.sys.env.get(k)??'');").replace("switch(c){","switch(c){case 'export':{const p=a.join(' ').split('=');this.sys.env.set(p[0].trim(),p.slice(1).join('='));break}case 'env':r=this.sys.env.list().map(x=>x.join('=')).join('\\n');break;");
+const BN={ln:"HJ.fs.symlink(argv[1],HJ.abs(argv[2]));",readlink:"puts(HJ.fs.readlink(HJ.abs(argv[0])));"};
+Object.entries(BN).forEach(([k,v])=>F('/system/bin/'+k+'.jsc','int main(int argc, char** argv){ '+v+' return 0; }'));
+F('/system/bin/crc.jsc','#include <stdio.h>\nuint32_t tab[4] = {1,2,3,4};\nunsigned int k[8];\nint main(int argc, char** argv){ uint32_t c = 0xFF; k[0]=tab[2]+c; printf("arr ok: %d len=%d\\n", k[0], 4); return 0; }');
+/* boot */
+B.forEach(m=>{S.fs.rm('/data/app/'+m.id+'.apkx');F('/system/app/'+m.id+'.apkx',JSON.stringify(S.parse(Object.assign({format:'apkx/1',version:'3.2'},m))))});
+S.loadFw();S.load();renderGrid();
+Object.values(S.reg).forEach(m=>{if(m.boot&&m.permissions.includes('boot_complete'))S.service({package:m.id,component:m.boot}).catch(e=>console.warn('boot',m.id,e.message))});
+</script><script>
+/* ===== v11: framework unificado, Arquivos: renomear/copiar/mover ===== */
+try{S.fs.rm('/system/frameworks')}catch(e){}
+S.fs.mkdir('/system/framework');S.fs.writeFile('/system/framework/three.url','https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js');
+const FX=B.find(x=>x.id=='wd.files').code.com.wd.files;
+FX.MainActivity=FX.MainActivity.replace("'Excluir','Selecionar']);","'Excluir','Selecionar','Renomear','Copiar','Mover']);").replace("if(k==5)this.tog(p)}","if(k==5)this.tog(p);if(k==6)this.ren(p);if(k==7)this.xfer([p],0);if(k==8)this.xfer([p],1)}")
+ .replace('<button data-a="rm">Excluir</button><button data-a="cl">✕</button>',"<button data-a=\"rm\">Excluir</button><button data-a=\"cp\">Copiar</button><button data-a=\"mv\">Mover</button>'+(s.size==1?'<button data-a=\"rn\">Renomear</button>':'')+'<button data-a=\"cl\">✕</button>")
+ .replace("if(a=='cl'){this.sel.clear();this.r()}","if(a=='cp'||a=='mv')return this.xfer(ps,a=='mv');if(a=='rn')return this.ren(ps[0]);if(a=='cl'){this.sel.clear();this.r()}")
+ .replace(" share(ps){",String.raw` cp(a,b){const fs=sys.fs;if(fs.stat(a).isDir){fs.mkdir(b);for(const n of fs.readdir(a))this.cp(a+'/'+n,b+'/'+n)}else fs.writeFile(b,fs.readFile(a))}
+ uniq(d,n){const fs=sys.fs,b=d=='/'?'':d,m=n.match(/^(.*?)(\.[^.]*)?$/);let q=b+'/'+n,i=1;while(fs.exists(q))q=b+'/'+m[1]+' ('+(i++)+')'+(m[2]||'');return q}
+ async ren(p){const n=await sys.prompt('Novo nome',p.split('/').pop());if(!n||n.includes('/'))return;const d=p.replace(/\/[^\/]*$/,'')||'/',q=(d=='/'?'':d)+'/'+n;
+  if(q==p)return;if(sys.fs.exists(q))return sys.toast('Já existe: '+n);try{this.cp(p,q);sys.fs.rm(p);this.sel.clear();this.r()}catch(e){sys.toast(e.message)}}
+ async xfer(ps,mv){const d=await sys.prompt((mv?'Mover ':'Copiar ')+ps.length+' item(ns) para (pasta)',this.cwd);if(!d)return;const fs=sys.fs;
+  try{if(!fs.stat(d).isDir)throw Error('x')}catch(e){try{fs.mkdir(d)}catch(x){return sys.toast('Destino inválido: '+d)}}
+  for(const p of ps){try{if(d==p||d.startsWith(p+'/'))throw Error('Não dá para copiar uma pasta para dentro dela mesma');const q=this.uniq(d,p.split('/').pop());this.cp(p,q);if(mv)fs.rm(p)}catch(e){sys.toast(e.message)}}this.sel.clear();this.r()}
+ share(ps){`);
+B.forEach(m=>{S.fs.rm('/data/app/'+m.id+'.apkx');F('/system/app/'+m.id+'.apkx',JSON.stringify(S.parse(Object.assign({format:'apkx/1',version:'3.3'},m))))});
+S.load();renderGrid();
 </script></body></html>
