@@ -4,7 +4,7 @@
 <title>WebDroid</title>
 <style>
 :root{--bg:#d9dde6;--sf:#fbfbfd;--fg:#14161c;--mut:#6a7080;--ln:#e2e5ec;--ac:#2f6df6;--bt:#eef1f8;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#07080b;--sf:#1b1d23;--fg:#eceef4;--mut:#9096a6;--ln:#2a2d36;--bt:#262a34}}
+
 :root[data-theme="dark"]{--bg:#07080b;--sf:#1b1d23;--fg:#eceef4;--mut:#9096a6;--ln:#2a2d36;--bt:#262a34}
 *{box-sizing:border-box}html,body{height:100%;margin:0}
 body{background:var(--bg);font:14px/1.4 system-ui,"Segoe UI",Roboto,sans-serif;display:flex;justify-content:center;align-items:center;color:var(--fg)}
@@ -77,6 +77,12 @@ class AndroidApp{
 
 /* ===== Kernel ===== */
 const S={fs:new FS(),reg:{},procs:{},nextPid:100,fg:null,notifs:[]};
+S.fs.mkdir('/system/priv-app');S.isPriv=id=>S.fs.exists('/system/priv-app/'+id+'.apkx');S.isSys=id=>S.isPriv(id)||S.fs.exists(['/system/app/',id,'.apkx'].join(''));
+S.Binder=class Binder{constructor(i){this.impl=i}};
+S.BLK=new Set(['MediaDevices','RTCPeerConnection','WebSocket','XMLHttpRequest','EventSource','fetch','localStorage','sessionStorage','indexedDB','caches','parent','top','opener','frames','S','B','FS','Notification','Worker','SharedWorker','open','eval','Mem','JSC','WebView']);
+S.sbc=()=>{const d=document,nav={language:navigator.language,languages:[navigator.language],userAgent:'WebDroid'},doc={createElement:(...a)=>d.createElement(...a),createElementNS:(...a)=>d.createElementNS(...a),createTextNode:t=>d.createTextNode(t),createDocumentFragment:()=>d.createDocumentFragment(),fonts:d.fonts};
+ const w=new Proxy(window,{get:(t,k)=>{if(typeof k!='string'||S.BLK.has(k))return undefined;if(k=='navigator')return nav;if(k=='document')return doc;if(k=='window'||k=='self'||k=='globalThis')return w;const v=t[k];return typeof v=='function'&&!/^[A-Z]/.test(k)?v.bind(t):v},has:()=>true});return{navigator:nav,document:doc,window:w,self:w,globalThis:w}};
+S.sb=(params,args,body)=>{const c=S.sbc(),sc=new Proxy({},{has:(t,k)=>typeof k=='string'&&(S.BLK.has(k)||k in c),get:(t,k)=>typeof k!='string'||S.BLK.has(k)?undefined:c[k]});return new Function('__sb',...params,'with(__sb){'+body+'}')(sc,...args)};
 S.parse=t=>{const m=typeof t==='string'?JSON.parse(t):t;
  if(m.format!=='apkx/1')throw Error('format deve ser "apkx/1"');
  for(const k of['id','name','main','code'])if(!m[k])throw Error('campo ausente: '+k);
@@ -103,7 +109,7 @@ S.launch=id=>{const m=S.reg[id];if(!m)return;
  let p=Object.values(S.procs).find(q=>q.m.id===id);
  if(!p){const pid=S.nextPid++,root=document.createElement('div');root.className='app-root';$('#win').append(root);
   p={pid,m,root,workers:[],start:Date.now()};S.procs[pid]=p;
-  try{const C=new Function('AndroidApp',m.code+'\nreturn '+m.main)(AndroidApp);p.inst=new C(S.api(p),pid,root,m);p.inst.onCreate()}
+  try{const C=S.sb(['AndroidApp'],[AndroidApp],m.code+'\nreturn '+m.main);p.inst=new C(S.api(p),pid,root,m);p.inst.onCreate()}
   catch(e){S.toast(m.name+' parou: '+e.message);S.kill(pid);return}}
  S.show(p)};
 S.show=p=>{if(S.fg&&S.fg!==p)S.pause();S.fg=p;
@@ -221,7 +227,7 @@ class Intent{constructor(o){Object.assign(this,o)}}
 class JSC{ // mistura de JS + C: tipos C, #include, printf, main(argc,argv)
  static T='int|float|double|char|long|short|unsigned|string|bool';
  static compile(s){const ex=[],T=JSC.T;
-  s=s.replace(/^\s*#include\s*[<"]([^>"]+)[>"]\s*$/gm,(_,n)=>'var '+n.replace(/\W.*$/,'')+'=JSC.lib("'+n+'");');
+  s=s.replace(/^\s*#include\s*[<"]([^>"]+)[>"]\s*$/gm,(_,n)=>'var '+n.replace(/\.soj$/,'').replace(/\+\+/g,'pp').replace(/\W/g,'_')+'=JSC.lib("'+n+'");');
   s=s.replace(new RegExp('\\b(?:'+T+'|void)\\b\\s*\\**\\s*(\\w+)\\s*\\(([^)]*)\\)\\s*\\{','g'),(_,n,p)=>{ex.push(n);return 'function '+n+'('+p.replace(new RegExp('\\b(?:'+T+')\\b\\s*\\**\\s*','g'),'').replace(/\[\]/g,'').replace(/^\s*void\s*$/,'')+'){'});
   s=s.replace(new RegExp('\\b(?:'+T+')\\b\\s*\\**\\s*(\\w+)','g'),'let $1').replace(/\(\s*(?:int|float|double|char)\s*\)/g,'');
   return s+'\nreturn {'+ex.join(',')+'};'}
@@ -236,7 +242,8 @@ S.cl=async(m,p)=>{const src={},cache={};(function w(o,q){for(const k in o)typeof
  for(const a of m.apis||[]){const key=(a.pkg?a.pkg+'.':'')+a.name;try{await S.script(a.url);cache[key]=new Proxy(class{},{get:(t,k)=>window[a.global][k],construct:(t,x)=>new window[a.global](...x)})}catch(e){if(a.optional!==true)throw Error('API obrigatória indisponível: '+a.name);cache[key]=new Proxy(class{},{get:()=>undefined})}}
  const ld=q=>{if(cache[q])return cache[q];let s=src[q];if(s==null)s=S.fwsrc&&S.fwsrc[q];if(s==null)throw Error('classe não encontrada: '+q);const im=[];
   s=s.replace(/^\s*import\s+([\w.]+)\s*;?/gm,(_,n)=>{im.push(n);return''});
-  return cache[q]=new Function('Activity','Service','Intent','sys',...im.map(n=>n.split('.').pop()),'return '+s)(Activity,Service,Intent,p.api,...im.map(ld))};
+  const bs=k=>q.startsWith('wd.aplication.base.')||!(S.fwsrc&&S.fwsrc['wd.aplication.base.'+k])?({Activity,Service,Intent,Binder:S.Binder})[k]:ld('wd.aplication.base.'+k);
+  return cache[q]=S.sb(['Activity','Service','Intent','Binder','AndroidApp','sys',...im.map(n=>n.split('.').pop())],[bs('Activity'),bs('Service'),bs('Intent'),bs('Binder'),AndroidApp,p.api,...im.map(ld)],'return '+s)};
  p.ld=ld};
 S.ensure=async id=>{const m=S.reg[id];let p=Object.values(S.procs).find(q=>q.m.id===id);if(p)return p;
  const pid=S.nextPid++,root=document.createElement('div');root.className='app-root';$('#win').append(root);
@@ -252,7 +259,7 @@ S.launch=async(id,intent)=>{try{const p=await S.ensure(id),v2=typeof p.m.code=='
  if(v2&&(intent||!p.stack.length)&&((intent&&intent.component)||p.m.main))S.pushAct(p,(intent&&intent.component)||p.m.main,intent);else if(!v2&&intent&&p.inst.onNewIntent)p.inst.onNewIntent(intent);S.show(p)}catch(e){console.warn(e)}};
 S.service=async(i,bind)=>{const p=await S.ensure(i.package||i._from);let s=p.svcs[i.component];
  if(!s){s=p.svcs[i.component]=new(p.ld(i.component))(p.api,p.pid,null,p.m);s.onCreate()}
- if(bind){const b=s.onBind?s.onBind(i):{};return new Proxy(b,{get:(t,k)=>typeof t[k]=='function'?(...a)=>Promise.resolve().then(()=>t[k](...a)):t[k]})}
+ if(bind){let b=s.onBind?s.onBind(i):{};if(b&&b.impl)b=b.impl;return new Proxy(b,{get:(t,k)=>typeof t[k]=='function'?(...a)=>Promise.resolve().then(()=>t[k](...a)):t[k]})}
  s.onStartCommand&&s.onStartCommand(i);return s};
 S.start=async(i,from)=>{if(i.component)return S.launch(i.package||from,i);
  const c=Object.values(S.reg).flatMap(m=>(m.filters||[]).filter(f=>f.action===i.action&&(!f.ext||f.ext.includes((i.data||'').split('.').pop()))).map(f=>({m,f})));
@@ -270,8 +277,8 @@ const a0=S.api;S.api=p=>{const m=p.m,b=a0(p),need=k=>{if(!m.permissions.includes
   settings:{get:k=>S.cfg[k],set:(k,v)=>{need('settings');S.cfg[k]=v;S.saveCfg();S.applyCfg()},clearNotifs:()=>{need('settings');S.notifs=[];renderNotifs()},reset:()=>{need('settings');localStorage.clear();location.reload()}}})};
 const p0=S.parse;S.parse=t=>{const m=typeof t=='string'?JSON.parse(t):t;if(m.code&&typeof m.code=='object'){if(m.format!=='apkx/2')throw Error('format deve ser "apkx/2"');for(const k of['id','name'])if(!m[k])throw Error('campo ausente: '+k);if(m.main===undefined)throw Error('campo ausente: main');m.permissions=m.permissions||[];m.icon=m.icon||'📦';m.version=m.version||'1.0';return m}return p0(m)};
 S.install=(m,d='/data/app')=>{S.fs.writeFile(d+'/'+m.id+'.apkx',JSON.stringify(m));S.reg[m.id]=m;renderGrid();renderWidgets()};
-S.uninstall=id=>{if(S.fs.exists('/system/app/'+id+'.apkx'))return S.toast('App do sistema');Object.values(S.procs).filter(p=>p.m.id===id).forEach(p=>S.kill(p.pid));S.fs.rm('/data/app/'+id+'.apkx');delete S.reg[id];renderGrid();renderWidgets()};
-S.load=()=>{S.reg={};for(const d of['/data/app','/system/app'])for(const f of S.fs.readdir(d)){try{const m=S.parse(S.fs.readFile(d+'/'+f));S.reg[m.id]=m}catch(e){console.warn(f,e)}}};
+S.uninstall=id=>{if(S.isSys(id))return S.toast('App do sistema');Object.values(S.procs).filter(p=>p.m.id===id).forEach(p=>S.kill(p.pid));S.fs.rm('/data/app/'+id+'.apkx');delete S.reg[id];renderGrid();renderWidgets()};
+S.load=()=>{S.reg={};for(const d of['/data/app','/system/app','/system/priv-app'])for(const f of S.fs.readdir(d)){try{const m=S.parse(S.fs.readFile(d+'/'+f));S.reg[m.id]=m}catch(e){console.warn(f,e)}}};
 /* config */
 S.cfg={theme:'auto',wall:0,pinned:['wd.files','wd.term','wd.config','wd.notes']};
 try{Object.assign(S.cfg,JSON.parse(S.fs.readFile('/data/config.json')))}catch(e){}
@@ -396,10 +403,10 @@ function norm(){const c=S.cfg;c.pinned=(c.pinned||[]).filter(i=>S.reg[i]);
  for(const i in S.reg)if(!c.seen.includes(i)){c.seen.push(i);if(!c.pinned.includes(i))c.pages.at(-1).push(i)}
  if(S.pg>=c.pages.length)S.pg=c.pages.length-1}
 const mk=(m,el,dr)=>{const d=document.createElement('div');d.className='ic';d.innerHTML='<i>'+esc(m.icon)+'</i>'+esc(m.name)+(S.ed&&!dr?'<b class="xb">✕</b>':'');let t,x0,y0;
- d.onpointerdown=e=>{x0=e.clientX;y0=e.clientY;t=setTimeout(async()=>{t=0;if(dr){if(await S.choose(m.name,['Desinstalar'])==0)S.uninstall(m.id)}else if(!S.ed)S.edit(true)},600)};
+ d.onpointerdown=e=>{x0=e.clientX;y0=e.clientY;t=setTimeout(async()=>{t=0;if(!(S.ed&&!dr))S.appMenu(m,dr)},600)};
  d.onpointerup=d.onpointerleave=()=>clearTimeout(t);
  d.onclick=async e=>{if(t===0){t=undefined;return}if(Math.abs(e.clientX-x0)>10||Math.abs(e.clientY-y0)>10)return;
-  if(S.ed&&!dr){const c=S.cfg,pin=c.pinned.includes(m.id),k=await S.choose(m.name,['Remover da tela inicial',pin?'Tirar da dock':'Mover para a dock','Mover para a próxima página']);if(k<0)return;
+  if(S.ed&&!dr){const c=S.cfg,pin=c.pinned.includes(m.id),k=await S.choose(m.name,['Remover da tela inicial',pin?'Tirar da dock':'Mover para a dock','Mover para a próxima página','Mover para pasta…']);if(k<0)return;if(k==3)return S.toFolder(m);
    c.pages.forEach(p=>{const j=p.indexOf(m.id);if(j>=0)p.splice(j,1)});c.pinned=c.pinned.filter(i=>i!=m.id);
    if(k==1){if(!pin&&c.pinned.length<5)c.pinned.push(m.id);else{if(!pin)S.toast('Dock cheia');c.pages[S.pg].push(m.id)}}
    if(k==2){const n=S.pg+1;if(n>=c.pages.length)c.pages.push([]);c.pages[n].push(m.id)}
@@ -536,7 +543,7 @@ const a2=S.api;S.api=p=>{const b=a2(p),m=p.m,need=k=>{if(!m.permissions.includes
  b.settings.setWallpaper=q=>{need('settings');S.cfg.wallImg=q;S.saveCfg();S.applyCfg()};
  b.settings.pickWallpaper=async()=>{need('settings');const f=await S.pick(1);if(!f)return;S.fs.writeFile('/data/wallpaper',f.data);S.cfg.wallImg='/data/wallpaper';S.saveCfg();S.applyCfg()};
  return b};
-const u0=S.uninstall;S.uninstall=id=>{if(!S.fs.exists('/system/app/'+id+'.apkx'))S.fs.rm('/data/data/'+id);u0(id)};
+const u0=S.uninstall;S.uninstall=id=>{if(!S.isSys(id))S.fs.rm('/data/data/'+id);u0(id)};
 S.applyCfg=()=>{const r=document.documentElement;S.cfg.theme==='auto'?r.removeAttribute('data-theme'):r.dataset.theme=S.cfg.theme;let bg=W[S.cfg.wall%W.length];
  if(S.cfg.wallImg&&S.fs.exists(S.cfg.wallImg)){const d=S.fs.readFile(S.cfg.wallImg);if(d.startsWith('data:image'))bg='url("'+d+'") center/cover no-repeat'}$('#home').style.background=bg};
 /* widgets (apkx/1 e apkx/2) */
@@ -622,7 +629,7 @@ const isF=n=>typeof n=='function'||typeof n.get=='function';
 /* JSC: struct, #define, tipos C e JS */
 JSC.T='int|float|double|char|long|short|unsigned|string|bool|number|boolean|object|any|array|bigint|var';
 JSC.compile=s=>{let T=JSC.T,ex=[],ns=[],D=[];
- s=s.replace(/^\s*#include\s*[<"]([^>"]+)[>"]\s*$/gm,(_,n)=>'var '+n.replace(/\W.*$/,'')+'=JSC.lib("'+n+'");');
+ s=s.replace(/^\s*#include\s*[<"]([^>"]+)[>"]\s*$/gm,(_,n)=>'var '+n.replace(/\.soj$/,'').replace(/\+\+/g,'pp').replace(/\W/g,'_')+'=JSC.lib("'+n+'");');
  s=s.replace(/^[ \t]*#define\s+(\w+)(\(([^)]*)\))?[ \t]+(.*)$/gm,(_,n,_a,a,b)=>{D.push([n,a==null?null:a.split(',').map(x=>x.trim()),b]);return''});
  for(let k=0;k<3;k++)for(const[n,a,b]of D)s=a==null?s.replace(new RegExp('\\b'+n+'\\b','g'),b):s.replace(new RegExp('\\b'+n+'\\(([^()]*)\\)','g'),(_,x)=>{const v=x.split(',').map(y=>y.trim());return '('+a.reduce((t,p,i)=>t.replace(new RegExp('\\b'+p+'\\b','g'),v[i]),b)+')'});
  const fl=b=>b.split(';').map(x=>x.trim()).filter(Boolean).map(x=>x.replace(/\[.*\]/,'').split(/[\s*]+/).pop());
@@ -647,7 +654,7 @@ const a3=S.api;S.api=p=>{const b=a3(p),m=p.m,need=k=>{if(!m.permissions.includes
  b.soj={load:n=>{const src=m.soj&&m.soj[n]!=null?m.soj[n]:b.fs.readFile(n[0]==='/'?n:'/system/lib/'+n);JSC.fs=b.fs;return JSC.mod(src,JSC.hj(b.fs,{sys:b,cwd:b.dataDir},()=>{}))}};
  b.jsc.run=(src,a,o,env)=>JSC.run(src,a||[],o||(()=>{}),b.fs,{sys:b,cwd:b.dataDir,...env});
  const med=async(k,c)=>{need(k);S.cfg.grants=S.cfg.grants||{};const key=m.id+':'+k;
-  if(S.cfg.grants[key]===undefined){S.cfg.grants[key]=await S.confirm(m.name+' quer acessar '+(k=='cam'?'a câmera':'o microfone')+'. Permitir?');S.saveCfg()}
+  if(S.cfg.grants[key]===undefined){S.cfg.grants[key]=await S.confirm(S.pm(k,m.name+' quer acessar '+(k=='cam'?'a câmera':'o microfone')+'. Permitir?'));S.saveCfg()}
   if(!S.cfg.grants[key])throw Error('Autorização negada: '+k);return navigator.mediaDevices.getUserMedia(c)};
  b.media={camera:()=>med('cam',{video:true}),mic:()=>med('mic',{audio:true})};
  b.settings.revoke=id=>{need('settings');for(const k in S.cfg.grants||{})if(k.startsWith(id+':'))delete S.cfg.grants[k];S.saveCfg()};
@@ -757,7 +764,7 @@ function renderWidgets(){const w=$('#widgets');if(!w)return;S.wg=[];w.innerHTML=
   if(S.ed){const c=document.createElement('div');c.className='mv';c.innerHTML=[['l','◀'],['u','▲'],['d','▼'],['r','▶'],['w','↔'],['h','↕']].map(b=>'<button data-a="'+b[0]+'" data-id="'+x.id+'" aria-label="'+b[1]+'">'+b[1]+'</button>').join('');box.append(c)}
   w.append(box);if(x.id=='clock'){el.id='wclock';return}
   const m=x.m,pr={pid:0,m,workers:[],start:Date.now(),svcs:{},stack:[]};pr.api=S.api(pr);
-  (async()=>{try{let C;if(typeof m.code=='object'){await S.cl(m,pr);C=pr.ld(x.cls)}else C=new Function('AndroidApp',m.code+'\nreturn '+x.cls)(AndroidApp);
+  (async()=>{try{let C;if(typeof m.code=='object'){await S.cl(m,pr);C=pr.ld(x.cls)}else C=S.sb(['AndroidApp'],[AndroidApp],m.code+'\nreturn '+x.cls);
    if(gen!=S.wgen)return;const o=new C(pr.api);S.wg.push(()=>o.update(el));o.update(el)}catch(e){box.remove()}})()});S.saveCfg()}
 $('#track').addEventListener('click',e=>{const a=e.target.dataset.a,id=e.target.dataset.id;if(!a||!id||!S.wv||!S.wv[id])return;const q={...S.wv[id]};
  if(a=='l')q.c--;if(a=='r')q.c++;if(a=='u')q.r--;if(a=='d')q.r++;if(a=='w')q.w=q.w%4+1;if(a=='h')q.h=q.h%3+1;
@@ -884,15 +891,15 @@ S.load();renderGrid();
 /* ===== v8: apkx/3 (assets, res, idioma), fs com autorização, Arquivos apkx/2, Navegador, Calendário, armazenamento, scanf ===== */
 const p4=S.parse;S.parse=t=>{const m=typeof t=='string'?JSON.parse(t):t;if(m.format=='apkx/3'&&m.code&&typeof m.code=='object'){m.format='apkx/2';const r=p4(m);r.format='apkx/3';if(r.assets)Object.freeze(r.assets);return r}return p4(m)};
 const e0=S.ensure;S.ensure=async id=>{const m=S.reg[id];
- if(m&&(m.declared||[]).includes('fs')&&!S.fs.exists('/system/app/'+id+'.apkx')){const g=S.cfg.grants=S.cfg.grants||{},k=id+':fs';
-  if(g[k]===undefined){g[k]=await S.confirm(m.name+' quer acessar seus arquivos. Permitir?');S.saveCfg();S.applyPerms()}}return e0(id)};
+ if(false&&m&&(m.declared||[]).includes('fs')&&!S.isSys(id)){const g=S.cfg.grants=S.cfg.grants||{},k=id+':fs';
+  if(g[k]===undefined){g[k]=await S.confirm(S.pm('fs',m.name+' quer acessar seus arquivos. Permitir?'));S.saveCfg();S.applyPerms()}}return e0(id)};
 const nrm=p=>{const r=[];for(const x of String(p).split('/')){if(x=='..')r.pop();else if(x&&x!='.')r.push(x)}return '/'+r.join('/')};
 const a6=S.api;S.api=p=>{const b=a6(p),m=p.m,R=m.res||{};
  const f0=b.fs,own=q=>{q=nrm(q);return q==b.dataDir||q.startsWith(b.dataDir+'/')};b.fs={};
  ['readFile','writeFile','readdir','mkdir','rm','exists','stat'].forEach(k=>b.fs[k]=(q,...a)=>own(q)?S.fs[k](nrm(q),...a):f0[k](q,...a));
  b.lang=()=>S.cfg.lang&&S.cfg.lang!='auto'?S.cfg.lang:(navigator.language||'en').slice(0,2);
  b.res={string:(k,...a)=>{const L=b.lang(),T=R.strings||{},v=(T[L]||{})[k]??(T[L.slice(0,2)]||{})[k]??(T.default||{})[k]??k;return String(v).replace(/\{(\d+)\}/g,(_,i)=>a[i])},
-  color:n=>{const t=S.cfg.theme=='auto'?(matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light'):S.cfg.theme,c=R.colors||{};return(c[t]||{})[n]??(c.light||{})[n]},
+  color:n=>{const t=S.eff(),c=R.colors||{};return(c[t]||{})[n]??(c.light||{})[n]},
   drawable:n=>{const v=R.drawable&&R.drawable[n];return iconSrc(v)||v},audio:n=>R.audio&&R.audio[n],
   font:async n=>{const u=R.fonts&&R.fonts[n];if(!u)throw Error('fonte ausente: '+n);const f=new FontFace(m.id+'-'+n,'url('+u+')');await f.load();document.fonts.add(f);return f.family}};
  b.assets={read:q=>{const v=(m.assets||{})[q];if(v==null)throw Error('ENOENT asset: '+q);return v},list:()=>Object.keys(m.assets||{}),exists:q=>(m.assets||{})[q]!=null};return b};
@@ -1008,7 +1015,7 @@ S.usage=()=>{const fs=S.fs,C={img:['🖼 Fotos',0,'#e91e63'],aud:['🎶 Áudio',
  const w=p=>{for(const n of fs.readdir(p)){const q=(p=='/'?'':p)+'/'+n;if(['/proc','/sys','/dev'].includes(q))continue;if(fs.stat(q).isDir){w(q);continue}
   const c=fs.readFile(q),z=c.length,k=q.startsWith('/cache')?'cch':q.startsWith('/system')?'sys':q.startsWith('/data/')?'app':c.startsWith('data:image')?'img':c.startsWith('data:audio')?'aud':/\.(txt|md|json|sh|jsc|soj|csv|html)$/i.test(q)?'doc':'oth';
   tot+=z;C[k][1]+=z;const it={z,p:q,k,t:fs.stat(q).mtime};L.push(it);if(z>20&&k!='sys'&&k!='app'){seen[c]?dup.push(it):seen[c]=1}}};w('/');return{C,L,dup,tot,Q:5*1048576}};
-const u1=S.uninstall;S.uninstall=id=>{if(!S.fs.exists('/system/app/'+id+'.apkx'))S.fs.rm('/cache/'+id);u1(id)};
+const u1=S.uninstall;S.uninstall=id=>{if(!S.isSys(id))S.fs.rm('/cache/'+id);u1(id)};
 /* WebView: iframe sandbox="allow-scripts" (origem opaca) + localStorage/fetch/APIs criados pelo WebView via postMessage */
 const SHIM=(st)=>'<script>(()=>{const S0='+JSON.stringify(st).replace(/</g,'\\u003c')+',P=parent,pend={};let n=0;const call=(t,x)=>new Promise(r=>{const id=++n;pend[id]=r;P.postMessage({wd:1,t,id,...x},"*")});'
  +'addEventListener("message",e=>{const d=e.data;if(d&&d.wd&&pend[d.id]){pend[d.id](d.v);delete pend[d.id]}});'
@@ -1047,7 +1054,7 @@ class WebView{constructor(sys,m,o={}){this.sys=sys;this.m=m;this.apis=o.apis||{}
  close(){removeEventListener('message',this.mh);this.el.remove()}}
 const a7=S.api;S.api=p=>{const b=a7(p),m=p.m;b.cacheDir='/cache/'+m.id;try{S.fs.mkdir(b.cacheDir)}catch(e){}
  const g0=b.fs;b.fs={};['readFile','writeFile','readdir','mkdir','rm','exists','stat'].forEach(k=>b.fs[k]=(q,...a)=>{const n=nrm(q);return n==b.cacheDir||n.startsWith(b.cacheDir+'/')?S.fs[k](n,...a):g0[k](q,...a)});
- b.storage={usage:()=>S.usage(),appSize:id=>{const r=S.reg[id]||{},sy=S.fs.exists('/system/app/'+id+'.apkx')?'/system/app/':'/data/app/',f=sy+id+'.apkx';return{data:S.dirSize('/data/data/'+id),cache:S.dirSize('/cache/'+id),apk:S.fs.exists(f)?S.fs.readFile(f).length:0}}};
+ b.storage={usage:()=>S.usage(),appSize:id=>{const r=S.reg[id]||{},sy=S.isSys(id)?'/system/app/':'/data/app/',f=sy+id+'.apkx';return{data:S.dirSize('/data/data/'+id),cache:S.dirSize('/cache/'+id),apk:S.fs.exists(f)?S.fs.readFile(f).length:0}}};
  b.webview={create:o=>new WebView(b,m,o)};return b};
 /* Navegador com a API WebView */
 const BR=B.find(x=>x.id=='wd.browser');BR.code=String.raw`class Browser extends AndroidApp{
@@ -1158,7 +1165,7 @@ S.PN={fs:{pt:'Arquivos',en:'Files',es:'Archivos'},cam:{pt:'Câmera',en:'Camera',
  process:{pt:'Processos',en:'Processes',es:'Procesos'},shell:{pt:'Shell',en:'Shell',es:'Shell'},mem:{pt:'Memória',en:'Memory',es:'Memoria'},'mem.share':{pt:'Memória compartilhada',en:'Shared memory',es:'Memoria compartida'},'mem.raw':{pt:'Memória bruta',en:'Raw memory',es:'Memoria cruda'},'mem.large':{pt:'Memória grande',en:'Large memory',es:'Memoria grande'},
  settings:{pt:'Configurações',en:'Settings',es:'Ajustes'},apps:{pt:'Gerenciar apps',en:'Manage apps',es:'Gestionar apps'},graphics:{pt:'Gráficos 3D',en:'3D graphics',es:'Gráficos 3D'},location:{pt:'Localização',en:'Location',es:'Ubicación'},boot_complete:{pt:'Iniciar com o sistema',en:'Run at startup',es:'Iniciar con el sistema'},overlay:{pt:'Aparecer sobre outros apps',en:'Display over other apps',es:'Mostrar sobre otras apps'}};
 S.pn=(p,l)=>(S.PN[p]||{})[l]||(S.PN[p]||{}).en||p;
-S.ask=async(m,k,msg)=>{S.cfg.grants=S.cfg.grants||{};const key=m.id+':'+k;if(!m.permissions.includes(k))throw Error('Permissão negada: '+k);if(S.cfg.grants[key]===undefined){S.cfg.grants[key]=await S.confirm(msg);S.saveCfg()}if(!S.cfg.grants[key])throw Error('Autorização negada: '+k)};
+S.ask=async(m,k,msg)=>{if(S.isSys(m.id)&&m.permissions.includes(k))return;S.cfg.grants=S.cfg.grants||{};const key=m.id+':'+k;if(!m.permissions.includes(k))throw Error('Permissão negada: '+k);if(S.cfg.grants[key]===undefined){S.cfg.grants[key]=await S.confirm(S.pm(k,msg));S.saveCfg()}if(!S.cfg.grants[key])throw Error('Autorização negada: '+k)};
 const a8=S.api;S.api=p=>{const b=a8(p),m=p.m,need=k=>{if(!m.permissions.includes(k))throw Error('Permissão negada: '+k)};
  b.settings.permName=q=>S.pn(q,b.lang());
  b.env={get:k=>S.env[k],set:(k,v)=>{S.env[k]=String(v);S.fs.writeFile('/data/env.json',JSON.stringify(S.env))},list:()=>Object.entries(S.env)};
@@ -1189,7 +1196,7 @@ function renderWidgets(){const tr=$('#track');if(!tr)return;const old=$('#widget
   if(S.ed){const c=document.createElement('div');c.className='mv';c.innerHTML=[['l','◀'],['u','▲'],['d','▼'],['r','▶'],['w','↔'],['h','↕'],['p','⇥']].map(b=>'<button data-k="'+b[0]+'" data-w="'+x.id+'" aria-label="'+b[1]+'">'+b[1]+'</button>').join('');box.append(c)}
   grids[q.p].append(box);if(x.id=='clock'){el.id='wclock';return}
   const m=x.m,pr={pid:0,m,workers:[],start:Date.now(),svcs:{},stack:[]};pr.api=S.api(pr);
-  (async()=>{try{let C;if(typeof m.code=='object'){await S.cl(m,pr);C=pr.ld(x.cls)}else C=new Function('AndroidApp',m.code+'\nreturn '+x.cls)(AndroidApp);const o=new C(pr.api);S.wg.push(()=>o.update(el));o.update(el)}catch(e){box.remove()}})()});S.saveCfg()}
+  (async()=>{try{let C;if(typeof m.code=='object'){await S.cl(m,pr);C=pr.ld(x.cls)}else C=S.sb(['AndroidApp'],[AndroidApp],m.code+'\nreturn '+x.cls);const o=new C(pr.api);S.wg.push(()=>o.update(el));o.update(el)}catch(e){box.remove()}})()});S.saveCfg()}
 $('#track').addEventListener('click',e=>{const k=e.target.dataset.k,id=e.target.dataset.w;if(!k||!id||!S.wv||!S.wv[id])return;const q={...S.wv[id]},L=S.cfg.pages.length;
  if(k=='l')q.c--;if(k=='r')q.c++;if(k=='u')q.r--;if(k=='d')q.r++;if(k=='w')q.w=q.w%4+1;if(k=='h')q.h=q.h%3+1;
  if(k=='p'){q.p=(q.p+1)%L;delete S.cfg.wPos[id];const V={};Object.entries(S.wv).forEach(([a,o])=>{if(o.p==q.p)V[a]=o});let ok=0;for(let r=0;r<30&&!ok;r++)for(let c=0;c+q.w<=4&&!ok;c++){const z={...q,c,r};if(fit2(V,id,z)){S.cfg.wPos[id]=z;ok=1}}S.pg=q.p;go(S.pg);return renderWidgets()}
@@ -1270,4 +1277,234 @@ FX.MainActivity=FX.MainActivity.replace("'Excluir','Selecionar']);","'Excluir','
  share(ps){`);
 B.forEach(m=>{S.fs.rm('/data/app/'+m.id+'.apkx');F('/system/app/'+m.id+'.apkx',JSON.stringify(S.parse(Object.assign({format:'apkx/1',version:'3.3'},m))))});
 S.load();renderGrid();
+</script><style>
+.wgw.ed{outline:2px dashed rgba(255,255,255,.7);outline-offset:-2px;border-radius:18px;touch-action:none}.rs{position:absolute;right:3px;bottom:3px;width:26px;height:26px;display:grid;place-items:center;background:rgba(0,0,0,.55);border-radius:8px;color:#fff;font-size:12px;touch-action:none}
+</style>
+<script>
+/* ===== v12 ===== */
+S.lang=()=>S.cfg.lang&&S.cfg.lang!='auto'?S.cfg.lang:(navigator.language||'en').slice(0,2);
+S.PE={fs:'📁',cam:'📷',mic:'🎤',net:'🌐',notifications:'🔔',process:'⚙️',shell:'💻',mem:'🧠','mem.share':'🔗','mem.raw':'🧬','mem.large':'🐘',settings:'🛠',apps:'📦',graphics:'🎮',location:'🗺',boot_complete:'🚀',overlay:'🪟',accounts:'👤'};
+S.PN.accounts={pt:'Contas',en:'Accounts',es:'Cuentas'};S.pe=k=>S.PE[k]||'🔑';S.pm=(k,t)=>S.pe(k)+' '+S.pn(k,S.lang())+' — '+t;
+/* File: open() */
+class File{constructor(fs,p,mode='r'){this.fs=fs;this.p=p;this.bin=mode.includes('b');this.pos=0;this.m=mode;
+  if(mode[0]=='w'){fs.writeFile(p,'');this.buf=this.bin?new Uint8Array(0):''}
+  else if(fs.exists(p)){const c=fs.readFile(p);this.buf=this.bin?File.dec(c):c}
+  else if(mode[0]=='a')this.buf=this.bin?new Uint8Array(0):'';else throw Error('ENOENT: '+p);
+  if(mode[0]=='a')this.pos=this.buf.length}
+ static dec(c){if(c.startsWith('data:')){const b=atob(c.split(',')[1]||'');return Uint8Array.from(b,x=>x.charCodeAt(0))}return new TextEncoder().encode(c)}
+ type(){return this.bin?'B':'T'}
+ T(){if(this.bin)throw Error('Operação requer modo texto (T)')}
+ flush(){let v=this.buf;if(this.bin){let s='';this.buf.forEach(x=>s+=String.fromCharCode(x));v='data:application/octet-stream;base64,'+btoa(s)}this.fs.writeFile(this.p,v)}
+ read(n){const e=n==null?this.buf.length:Math.min(this.buf.length,this.pos+n),r=this.buf.slice(this.pos,e);this.pos=e;return r}
+ write(d){if(this.bin){if(!(d instanceof Uint8Array))d=new Uint8Array(d);const o=new Uint8Array(Math.max(this.buf.length,this.pos+d.length));o.set(this.buf);o.set(d,this.pos);this.buf=o}else{this.T();if(typeof d!='string')throw TypeError('write() em modo T exige texto');this.buf=this.buf.slice(0,this.pos)+d+this.buf.slice(this.pos+d.length)}
+  this.pos+=d.length;this.flush();return d.length}
+ seek(o,w=0){this.pos=Math.max(0,(w==1?this.pos:w==2?this.buf.length:0)+o);return this.pos}
+ tell(){return this.pos}
+ readline(){this.T();if(this.pos>=this.buf.length)return '';let i=this.buf.indexOf('\n',this.pos);i=i<0?this.buf.length:i+1;const r=this.buf.slice(this.pos,i);this.pos=i;return r}
+ readlines(){this.T();const r=[];let l;while((l=this.readline())!=='')r.push(l);return r}
+ writelines(a){this.T();return this.write(a.join(''))}
+ close(){this.flush()}}
+/* accounts, media e fs.open na API */
+S.accRes=[];const a9=S.api;S.api=p=>{const b=a9(p),m=p.m,sysapp=()=>S.isSys(m.id);
+ b.settings.permName=q=>S.pe(q)+' '+S.pn(q,b.lang());
+ const p0=b.media.player;b.media.player=()=>{const pl=p0();pl.volume=1;return pl};
+ b.fs.open=(q,md)=>new File(b.fs,q,md||'r');
+ const au=()=>S.ask(m,'accounts',m.name+' quer acessar suas contas. Permitir?'),svc=()=>S.service({package:'wd.accounts',component:'wd.accounts.AccountService',_from:m.id},true);
+ b.accounts={_added:a=>{if(m.id=='wd.accounts')S.accRes.splice(0).forEach(r=>r(a))},list:async t=>{await au();const l=await(await svc()).list();return t?l.filter(a=>a.type==t):l},
+  token:async id=>{await au();return(await svc()).token(id)},verify:async(...x)=>{await au();return(await svc()).verify(...x)},
+  add:async type=>{await au();return new Promise(r=>{S.accRes.push(r);S.start({package:'wd.accounts',component:'wd.accounts.LoginActivity',extras:{type}},m.id)})},
+  remove:async id=>{if(!sysapp())throw Error('Só apps do sistema removem contas');return(await svc()).remove(id)}};
+ return b};
+/* frameworks exigidos pelo app (manifesto "frameworks":["wd.util"]) */
+const e1=S.ensure;S.ensure=async id=>{const m=S.reg[id];for(const f of(m&&m.frameworks)||[])if(!S.fs.exists('/system/framework/'+f+'.jsar')){S.toast('Framework ausente: '+f);throw Error('Framework ausente: '+f)}return e1(id)};
+/* jsar do sistema */
+const JS=(n,code)=>S.fs.writeFile('/system/framework/'+n+'.jsar',JSON.stringify({format:'jsar/1',name:n,code}));
+JS('wd.util',{wd:{util:{
+ Str:String.raw`class Str{static cap(s){return s?s[0].toUpperCase()+s.slice(1):s}static pad(n,l=2){return String(n).padStart(l,"0")}static trunc(s,n){return s.length>n?s.slice(0,n-1)+"…":s}static slug(s){return s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"")}}`,
+ Fmt:String.raw`class Fmt{static size(n){const u=["B","KB","MB","GB"];let i=0;while(n>=1024&&i<3){n/=1024;i++}return(i?n.toFixed(1):n)+" "+u[i]}static date(t,l){return new Date(t).toLocaleDateString(l||"pt")}static time(t,l){return new Date(t).toLocaleTimeString(l||"pt").slice(0,5)}static dur(s){return Math.floor(s/60)+":"+String(Math.floor(s%60)).padStart(2,"0")}}`,
+ Arr:String.raw`class Arr{static chunk(a,n){const r=[];for(let i=0;i<a.length;i+=n)r.push(a.slice(i,i+n));return r}static uniq(a){return[...new Set(a)]}static sortBy(a,f){return a.slice().sort((x,y)=>f(x)<f(y)?-1:f(x)>f(y)?1:0)}}`,
+ Json:String.raw`class Json{static safe(s,d=null){try{return JSON.parse(s)}catch(e){return d}}}`}}});
+JS('wd.math',{wd:{math:{Vec2:String.raw`class Vec2{constructor(x=0,y=0){this.x=x;this.y=y}add(o){return new Vec2(this.x+o.x,this.y+o.y)}scale(k){return new Vec2(this.x*k,this.y*k)}get len(){return Math.hypot(this.x,this.y)}}`,
+ Stats:String.raw`class Stats{static mean(a){return a.reduce((x,y)=>x+y,0)/a.length}static median(a){const b=a.slice().sort((x,y)=>x-y),m=b.length>>1;return b.length%2?b[m]:(b[m-1]+b[m])/2}}`}}});
+JS('wd.text',{wd:{text:{Text:String.raw`class Text{static words(s){return s.trim()?s.trim().split(/\s+/):[]}static wrap(s,n){const o=[];let l="";for(const w of Text.words(s)){if((l+" "+w).trim().length>n){o.push(l);l=w}else l=(l+" "+w).trim()}if(l)o.push(l);return o}}`}}});
+S.loadFw();
+F('/system/lib/libc++.soj',`any vector(){ return []; }
+void push_back(any v, any x){ v.push(x); }
+int size(any v){ return v.length; }
+void sort(any v){ v.sort((a,b)=>a<b?-1:a>b?1:0); }
+any reverse(any v){ return v.slice().reverse(); }
+any range(int a, int b){ let r=[]; for(int i=a;i<b;i++) r.push(i); return r; }
+int accumulate(any v){ int s=0; for(let x of v) s+=x; return s; }
+any map(){ return new Map(); }
+string to_string(any x){ return String(x); }
+int stoi(string s){ return parseInt(s)||0; }
+double stod(string s){ return parseFloat(s)||0; }
+string substr(string s, int a, int n){ return s.substr(a,n); }
+int find(string s, string t){ return s.indexOf(t); }
+any split(string s, string d){ return s.split(d); }
+string join(any v, string d){ return v.join(d); }
+string trim(string s){ return s.trim(); }`);
+F('/system/bin/cpp.jsc','#include <libc++.soj>\nint main(int argc, char** argv){ any v = libcpp.range(1,6); libcpp.push_back(v, 10); printf("sum=%d size=%d %s\\n", libcpp.accumulate(v), libcpp.size(v), libcpp.join(libcpp.reverse(v), ",")); return 0; }');
+/* widgets: arrastar para mover, ◢ para redimensionar */
+function renderWidgets(){const tr=$('#track');if(!tr)return;const old=$('#widgets');if(old)old.remove();tr.querySelectorAll('.wgrid').forEach(g=>g.remove());S.wg=[];const gen=S.wgen=(S.wgen||0)+1;
+ const pgs=[...tr.children],grids=pgs.map(pg=>{const g=document.createElement('div');g.className='wgrid';pg.prepend(g);return g});if(!pgs.length)return;
+ const off=S.cfg.wOff||[],P=S.cfg.wPos=S.cfg.wPos||{};if(S.cfg.widgets===false)return;
+ const it=[{id:'clock',w:4,h:1}];Object.values(S.reg).forEach(m=>it.push(...wl(m)));const vis=it.filter(x=>!off.includes(x.id)&&!(x.m&&off.includes(x.m.id)));
+ vis.forEach(x=>{const q=P[x.id];if(q&&(q.p==null||q.p>=pgs.length))q.p=0});
+ vis.forEach(x=>{if(P[x.id])return;const ww=x.w||2,hh=x.h||1,pg=S.pg<pgs.length?S.pg:0,V={};vis.forEach(y=>{if(P[y.id]&&P[y.id].p==pg)V[y.id]=P[y.id]});
+  for(let r=0;r<30&&!P[x.id];r++)for(let c=0;c+ww<=4&&!P[x.id];c++){const q={c,r,w:ww,h:hh,p:pg};if(fit2(V,x.id,q))P[x.id]=q}});S.wv=P;
+ vis.forEach(x=>{const q=P[x.id];if(!q)return;const box=document.createElement('div'),el=document.createElement('div');box.className='wgw';box.dataset.id=x.id;el.className='wg';box.append(el);
+  box.style.gridColumn=(q.c+1)+' / span '+q.w;box.style.gridRow=(q.r+1)+' / span '+q.h;
+  if(S.ed){box.classList.add('ed');const h=document.createElement('div');h.className='rs';h.dataset.rs=1;h.textContent='◢';box.append(h);
+   box.onpointerdown=e=>{e.stopPropagation();e.preventDefault();const rs=!!e.target.dataset.rs,cw=(box.parentElement.clientWidth+8)/4,rh=80,x0=e.clientX,y0=e.clientY,q0={...P[x.id]};let tp=q0.p,lt=0,dx=0,dy=0;box.setPointerCapture(e.pointerId);box.style.zIndex=5;box.style.opacity=.85;
+    box.onpointermove=ev=>{dx=ev.clientX-x0;dy=ev.clientY-y0;if(rs){box.style.width='calc(100% + '+dx+'px)';box.style.height='calc(100% + '+dy+'px)'}else{box.style.transform='translate('+dx+'px,'+dy+'px)';const now=Date.now();
+      if(now-lt>700&&(ev.clientX<24||ev.clientX>innerWidth-24)){lt=now;const n=Math.max(0,Math.min(S.cfg.pages.length-1,S.pg+(ev.clientX<24?-1:1)));if(n!=S.pg){S.pg=n;tp=n;go(n);S.toast('Solte para mover para a página '+(n+1))}}}};
+    box.onpointerup=ev=>{ev.stopPropagation();box.onpointermove=box.onpointerup=null;const q={...q0};
+     if(rs){q.w=Math.max(1,Math.min(4-q.c,q0.w+Math.round(dx/cw)));q.h=Math.max(1,Math.min(4,q0.h+Math.round(dy/rh)))}else{q.c=Math.max(0,Math.min(4-q.w,q0.c+Math.round(dx/cw)));q.r=Math.max(0,q0.r+Math.round(dy/rh));q.p=tp}
+     const V={};Object.entries(P).forEach(([a,o])=>{if(a!=x.id&&o.p==q.p)V[a]=o});if(fit2(V,x.id,q))P[x.id]=q;else if(q.p!=q0.p)delete P[x.id];else S.toast('Sem espaço nessa posição');renderWidgets()}}}
+  grids[q.p].append(box);if(x.id=='clock'){el.id='wclock';return}
+  const m=x.m,pr={pid:0,m,workers:[],start:Date.now(),svcs:{},stack:[]};pr.api=S.api(pr);
+  (async()=>{try{let C;if(typeof m.code=='object'){await S.cl(m,pr);C=pr.ld(x.cls)}else C=S.sb(['AndroidApp'],[AndroidApp],m.code+'\nreturn '+x.cls);if(gen!=S.wgen)return;const o=new C(pr.api);S.wg.push(()=>o.update(el));o.update(el)}catch(e){box.remove()}})()});S.saveCfg()}
+/* apps: Arquivos usa wd.util; Gerenciador de contas; Config → Contas */
+const FF=B.find(x=>x.id=='wd.files');FF.frameworks=['wd.util'];const FM2=FF.code.com.wd.files;
+FM2.MainActivity='import wd.util.Fmt\n'+FM2.MainActivity.replace("return(s.isDir?'':(s.size/1024).toFixed(1)+' KB · ')+new Date(s.mtime).toLocaleDateString(sys.lang())","return(s.isDir?'':Fmt.size(s.size)+' · ')+Fmt.date(s.mtime,sys.lang())");
+B.push({id:'wd.accounts',format:'apkx/3',name:'Gerenciador de contas',icon:{type:'svg',value:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#2e7d6b"/><circle cx="32" cy="24" r="10" fill="#fff"/><path d="M12 54c2-12 10-18 20-18s18 6 20 18z" fill="#fff"/></svg>'},main:null,permissions:[],
+ res:{strings:{default:{title:'Add account',user:'Username',pass:'Password or token',create:'Create',cancel:'Cancel'},pt:{title:'Adicionar conta',user:'Usuário',pass:'Senha ou token',create:'Criar',cancel:'Cancelar'},es:{title:'Añadir cuenta',user:'Usuario',pass:'Contraseña o token',create:'Crear',cancel:'Cancelar'}}},
+ code:{wd:{accounts:{
+  AccountService:String.raw`class AccountService extends Service{
+ load(){try{return JSON.parse(sys.fs.readFile(sys.dataDir+'/accounts.json'))}catch(e){return[]}}
+ save(l){sys.fs.writeFile(sys.dataDir+'/accounts.json',JSON.stringify(l))}
+ async hash(s){if(!(crypto.subtle&&crypto.subtle.digest))return btoa(unescape(encodeURIComponent(s)));const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));return Array.from(new Uint8Array(b),x=>x.toString(16).padStart(2,'0')).join('')}
+ onBind(){return{list:()=>this.load().map(a=>({id:a.id,type:a.type,name:a.name})),
+  add:async(type,name,secret)=>{if(!name)throw Error('Nome vazio');const l=this.load();if(l.some(a=>a.type==type&&a.name==name))throw Error('Conta já existe');
+   const a={id:'acc'+Date.now(),type,name,token:Array.from(crypto.getRandomValues(new Uint8Array(12)),b=>b.toString(16).padStart(2,'0')).join(''),h:await this.hash(name+':'+secret)};l.push(a);this.save(l);return{id:a.id,type,name}},
+  remove:id=>this.save(this.load().filter(a=>a.id!=id)),token:id=>(this.load().find(a=>a.id==id)||{}).token,
+  verify:async(type,name,secret)=>{const a=this.load().find(x=>x.type==type&&x.name==name);return !!a&&a.h==await this.hash(name+':'+secret)}}}}`,
+  LoginActivity:String.raw`class LoginActivity extends Activity{onCreate(){const R=k=>sys.res.string(k);
+ this.setContentView('<div style="padding:16px;display:flex;flex-direction:column;gap:10px"><h2>'+R('title')+'</h2><select id="t"><option value="local">Local</option><option value="token">Token</option></select><input id="n" placeholder="'+R('user')+'"><input id="s" type="password" placeholder="'+R('pass')+'"><div style="display:flex;gap:8px"><button id="c">'+R('create')+'</button><button id="x">'+R('cancel')+'</button></div></div>');
+ this.$('#t').value=(this.intent.extras||{}).type||'local';
+ this.$('#c').onclick=async()=>{try{const svc=await sys.bindService({package:'wd.accounts',component:'wd.accounts.AccountService'}),a=await svc.add(this.$('#t').value,this.$('#n').value.trim(),this.$('#s').value);sys.accounts._added(a);sys.toast('✔ '+a.name);this.finish()}catch(e){sys.toast(e.message)}};
+ this.$('#x').onclick=()=>this.finish()}}`}}}});
+const C12=B.find(x=>x.id=='wd.config');C12.permissions.push('accounts');
+C12.code=C12.code.replace("'🛡 Proxy do navegador: '+(s.get('proxyOk')===false?'desligado':'ligado')]","'🛡 Proxy do navegador: '+(s.get('proxyOk')===false?'desligado':'ligado'),'👤 Contas']").replace("if(i==9)return this.proxy();","if(i==9)return this.proxy();if(i==10)return this.acc();")
+ .replace(" async proxy(){",String.raw` async acc(){const l=await this.sys.accounts.list(),k=await this.sys.choose('Contas',['➕ Adicionar conta',...l.map(a=>(a.type=='token'?'🔑 ':'👤 ')+a.name+' ('+a.type+')')]);
+  if(k==0){this.sys.accounts.add('local');return}if(k>0){const j=await this.sys.choose(l[k-1].name,['Remover conta']);if(j==0&&await this.sys.confirm('Remover '+l[k-1].name+'?'))await this.sys.accounts.remove(l[k-1].id)}if(k>=0)this.acc()}
+ async proxy(){`);
+B.forEach(m=>{S.fs.rm('/data/app/'+m.id+'.apkx');F('/system/app/'+m.id+'.apkx',JSON.stringify(S.parse(Object.assign({format:'apkx/1',version:'3.4'},m))))});
+S.load();renderGrid();
+</script><script>
+/* ===== v13: volume mestre robusto, contas local/externa, ícone do Terminal ===== */
+Object.defineProperty(MediaPlayer.prototype,'volume',{set(v){this.g.gain.value=v},get(){return this.g.gain.value}});
+MediaPlayer=class extends MediaPlayer{constructor(){super();(S.mp=S.mp||new Set()).add(this);this.g.disconnect();this.m=this.ctx.createGain();this.m.gain.value=S.vol;this.g.connect(this.m);this.m.connect(this.ctx.destination)}
+ close(){S.mp.delete(this);super.close()}};
+S.setVol=v=>{S.vol=v;(S.mp||[]).forEach(p=>{p.m.gain.value=v})};
+$('#vl').oninput=e=>S.setVol(e.target.value/100);
+/* Terminal: ícone SVG preto com >_ verde */
+B.find(x=>x.id=='wd.term').icon={type:'svg',value:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#000"/><polyline points="16,22 30,32 16,42" fill="none" stroke="#00e676" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><line x1="34" y1="44" x2="50" y2="44" stroke="#00e676" stroke-width="5" stroke-linecap="round"/></svg>'};
+/* Gerenciador de contas: local (nome + foto) e externa (provedor + usuário + senha/token) */
+const AM=B.find(x=>x.id=='wd.accounts'),AC=AM.code.wd.accounts;
+AM.res.strings={default:{title:'Add account',local:'Local account',external:'External account',photo:'Photo',name:'Name',provider:'Provider link',user:'Username or email',pass:'Password or token',create:'Create',cancel:'Cancel'},
+ pt:{title:'Adicionar conta',local:'Conta local',external:'Conta externa',photo:'Foto',name:'Nome',provider:'Link do provedor',user:'Usuário ou e-mail',pass:'Senha ou token',create:'Criar',cancel:'Cancelar'},
+ es:{title:'Añadir cuenta',local:'Cuenta local',external:'Cuenta externa',photo:'Foto',name:'Nombre',provider:'Enlace del proveedor',user:'Usuario o correo',pass:'Contraseña o token',create:'Crear',cancel:'Cancelar'}};
+AC.AccountService=String.raw`class AccountService extends Service{
+ load(){try{return JSON.parse(sys.fs.readFile(sys.dataDir+'/accounts.json'))}catch(e){return[]}}
+ save(l){sys.fs.writeFile(sys.dataDir+'/accounts.json',JSON.stringify(l))}
+ async hash(s){if(!(crypto.subtle&&crypto.subtle.digest))return btoa(unescape(encodeURIComponent(s)));const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));return Array.from(new Uint8Array(b),x=>x.toString(16).padStart(2,'0')).join('')}
+ onBind(){const pub=a=>({id:a.id,type:a.type,name:a.name,photo:a.photo||null,provider:a.provider||null,user:a.user||null});
+  return{list:()=>this.load().map(pub),
+   add:async d=>{const l=this.load(),type=d.type=='local'?'local':'external',name=(d.name||'').trim();if(!name)throw Error('Nome vazio');
+    const a={id:'acc'+Date.now(),type,name,token:Array.from(crypto.getRandomValues(new Uint8Array(12)),b=>b.toString(16).padStart(2,'0')).join('')};
+    if(type=='local')a.photo=d.photo||null;
+    else{if(!/^https?:\/\/[^\s\/]+\.[^\s]+/.test(d.provider||''))throw Error('Link do provedor inválido');if(!d.user||!d.secret)throw Error('Informe usuário e senha/token');a.provider=d.provider.trim();a.user=d.user.trim();a.h=await this.hash(a.provider+'|'+a.user+':'+d.secret)}
+    if(l.some(x=>x.type==type&&x.name==name&&x.provider==a.provider))throw Error('Conta já existe');l.push(a);this.save(l);return pub(a)},
+   remove:id=>this.save(this.load().filter(a=>a.id!=id)),token:id=>(this.load().find(a=>a.id==id)||{}).token,
+   verify:async(id,secret)=>{const a=this.load().find(x=>x.id==id);return !!a&&a.type=='external'&&a.h==await this.hash(a.provider+'|'+a.user+':'+secret)}}}}`;
+AC.LoginActivity=String.raw`class LoginActivity extends Activity{onCreate(){const R=k=>sys.res.string(k);this.photo=null;
+ this.setContentView('<div style="padding:16px;display:flex;flex-direction:column;gap:10px;overflow:auto"><h2>'+R('title')+'</h2><select id="t"><option value="local">'+R('local')+'</option><option value="external">'+R('external')+'</option></select>'
+  +'<div id="pf" style="display:flex;align-items:center;gap:12px"><img id="im" alt="" style="width:64px;height:64px;border-radius:50%;object-fit:cover;background:var(--bt)"><button id="ph">'+R('photo')+'</button></div><input id="n" placeholder="'+R('name')+'">'
+  +'<div id="ex" style="display:none;flex-direction:column;gap:10px"><input id="pr" placeholder="'+R('provider')+' (https://…)"><input id="u" placeholder="'+R('user')+'"><input id="s" type="password" placeholder="'+R('pass')+'"></div>'
+  +'<div style="display:flex;gap:8px"><button id="c">'+R('create')+'</button><button id="x">'+R('cancel')+'</button></div></div>');
+ const t=this.$('#t');t.value=(this.intent.extras||{}).type=='external'?'external':'local';const sw=()=>{this.$('#ex').style.display=t.value=='external'?'flex':'none';this.$('#pf').style.display=t.value=='local'?'flex':'none'};t.onchange=sw;sw();
+ this.$('#ph').onclick=()=>{const f=document.createElement('input');f.type='file';f.accept='image/*';f.onchange=()=>{const r=new FileReader();r.onload=()=>{const i=new Image();i.onload=()=>{const c=document.createElement('canvas');c.width=c.height=96;const s=Math.min(i.width,i.height);c.getContext('2d').drawImage(i,(i.width-s)/2,(i.height-s)/2,s,s,0,0,96,96);this.photo=c.toDataURL('image/jpeg',.8);this.$('#im').src=this.photo};i.src=r.result};r.readAsDataURL(f.files[0])};f.click()};
+ this.$('#c').onclick=async()=>{try{const svc=await sys.bindService({package:'wd.accounts',component:'wd.accounts.AccountService'}),a=await svc.add({type:t.value,name:this.$('#n').value,photo:this.photo,provider:this.$('#pr').value,user:this.$('#u').value,secret:this.$('#s').value});sys.accounts._added(a);sys.toast('✔ '+a.name);this.finish()}catch(e){sys.toast(e.message)}};
+ this.$('#x').onclick=()=>this.finish()}}`;
+const C13=B.find(x=>x.id=='wd.config');
+C13.code=C13.code.replace("(a.type=='token'?'🔑 ':'👤 ')+a.name+' ('+a.type+')'","(a.type=='local'?'👤 ':'🌐 ')+a.name+(a.provider?' · '+new URL(a.provider).host:'')");
+B.forEach(m=>{S.fs.rm('/data/app/'+m.id+'.apkx');F('/system/app/'+m.id+'.apkx',JSON.stringify(S.parse(Object.assign({format:'apkx/1',version:'3.5'},m))))});
+S.load();renderGrid();
+</script><style>
+:root{color-scheme:light}:root[data-theme="dark"]{color-scheme:dark}
+</style>
+<script>
+/* ===== v14 ===== */
+S.eff=()=>S.cfg.theme=='auto'?((h=>h>=19||h<7)(new Date().getHours())?'dark':'light'):S.cfg.theme;
+S.applyCfg=()=>{document.documentElement.dataset.theme=S.eff();let bg=W[S.cfg.wall%W.length];if(S.cfg.wallImg&&S.fs.exists(S.cfg.wallImg)){const d=S.fs.readFile(S.cfg.wallImg);if(d.startsWith('data:image'))bg='url("'+d+'") center/cover no-repeat'}$('#home').style.background=bg};
+setInterval(()=>S.applyCfg(),300000);
+/* permissões: o app decide quando pedir */
+S.applyPerms=()=>{const g=S.cfg.grants||{};for(const m of Object.values(S.reg)){const d=m.declared||m.permissions;m.declared=d;const pv=S.isPriv(m.id),sy=S.isSys(m.id);m.permissions=pv?d.slice():d.filter(p=>p=='fs'&&!sy?g[m.id+':fs']===true:g[m.id+':'+p]!==false)}};
+S.ask=async(m,k,msg)=>{if(!(m.declared||m.permissions).includes(k))throw Error('Permissão não declarada: '+k);if(S.isSys(m.id))return true;const g=S.cfg.grants=S.cfg.grants||{},key=m.id+':'+k;
+ if(g[key]===undefined){g[key]=await S.confirm(S.pm(k,msg));S.saveCfg()}S.applyPerms();if(!g[key])throw Error('Autorização negada: '+k);return true};
+const a10=S.api;S.api=p=>{const b=a10(p),m=p.m,au=()=>S.ask(m,'accounts',m.name+' quer acessar suas contas. Permitir?');
+ b.permissions={check:k=>m.permissions.includes(k),request:async k=>{try{return await S.ask(m,k,m.name+' precisa desta permissão.')}catch(e){return false}}};
+ const sp=b.settings.setPerm;b.settings.setPerm=(id,q,v)=>S.isPriv(id)?S.toast('App privilegiado: permissões fixas'):sp(id,q,v);
+ b.settings.getPerm=(id,q)=>{const g=(S.cfg.grants||{})[id+':'+q];if(S.isPriv(id))return true;const ask=['cam','mic','location','overlay'].includes(q)||(q=='fs'&&!S.isSys(id));return g===undefined&&!ask?true:g};
+ b.accounts.pick=async(o={})=>{await au();return new Promise(r=>{(S.accPick=S.accPick||[]).push(r);S.start({package:'wd.accounts',component:'wd.accounts.PickerActivity',extras:o},m.id)})};
+ b.accounts._picked=a=>{if(m.id=='wd.accounts')(S.accPick||[]).splice(0).forEach(r=>r(a))};
+ b.queryIntent=i=>Object.values(S.reg).filter(x=>(x.filters||[]).some(f=>f.action===String(i.action).replace(/^android\.intent\.action\./,''))).map(x=>({id:x.id,name:x.name}));
+ return b};
+const p6=S.parse;S.parse=t=>{const m=p6(t);if(m.intents){m.filters=[...(m.filters||[])];for(const x of m.intents)if(!m.filters.some(f=>JSON.stringify(f)==JSON.stringify(x)))m.filters.push(x)}return m};
+/* jsar de runtime: classes base em wd.aplication.base */
+S.fs.writeFile('/system/framework/wd.runtime.jsar',JSON.stringify({format:'jsar/1',name:'wd.runtime',code:{wd:{aplication:{base:{
+ Activity:'class Activity extends AndroidApp{setContentView(h){this.root.innerHTML=h}$(s){return this.root.querySelector(s)}finish(){this.sys.finish()}}',
+ Service:'class Service{constructor(sys,pid,_,m){this.sys=sys;this.pid=pid;this.manifest=m}onCreate(){}onDestroy(){}}',
+ Intent:'class Intent{constructor(o){Object.assign(this,o)}static get ACTION_VIEW(){return "VIEW"}static get ACTION_SEND(){return "SEND"}static get ACTION_MAIN(){return "MAIN"}}',
+ Binder:'class Binder{constructor(impl){this.impl=impl}}'}},runtime:{Uri:'class Uri{static parse(u){try{return new URL(u)}catch(e){return null}}static isFile(u){return String(u).startsWith("/")}}',Bundle:'class Bundle{constructor(o={}){this.d={...o}}get(k,d){return k in this.d?this.d[k]:d}put(k,v){this.d[k]=v;return this}}'}}}}));
+S.loadFw();
+/* Gerenciador de contas: PickerActivity */
+const AM2=B.find(x=>x.id=='wd.accounts');AM2.priv=true;const AS=AM2.res.strings;
+Object.assign(AS.default,{pick:'Choose an account',none:'No accounts',bad:'Wrong password'});Object.assign(AS.pt,{pick:'Escolha uma conta',none:'Nenhuma conta',bad:'Senha incorreta'});Object.assign(AS.es,{pick:'Elige una cuenta',none:'Sin cuentas',bad:'Contraseña incorrecta'});
+AM2.code.wd.accounts.PickerActivity=String.raw`class PickerActivity extends Activity{async onCreate(){const f=((this.intent.extras||{}).provider||'').toLowerCase();this.done=false;
+ const svc=await sys.bindService({package:'wd.accounts',component:'wd.accounts.AccountService'});let l=await svc.list();if(f)l=l.filter(a=>(a.provider||'').toLowerCase().includes(f));
+ this.setContentView('<div class="bar"><b style="flex:1">'+sys.res.string('pick')+'</b><button id="a">+</button></div><div style="overflow:auto">'+(l.map((a,i)=>'<div class="row" data-i="'+i+'" style="gap:12px">'+(a.photo?'<img src="'+a.photo+'" alt="" style="width:44px;height:44px;border-radius:50%;object-fit:cover">':'<span style="width:44px;height:44px;border-radius:50%;background:var(--ac);color:#fff;display:grid;place-items:center">'+esc((a.name||'?')[0].toUpperCase())+'</span>')+'<div><b>'+esc(a.name)+'</b><br><small>'+esc(a.user||'')+(a.provider?' · '+esc(new URL(a.provider).host):' · local')+'</small></div></div>').join('')||'<p style="padding:16px">'+sys.res.string('none')+'</p>')+'</div>');
+ this.$('#a').onclick=()=>sys.startActivity({package:'wd.accounts',component:'wd.accounts.LoginActivity',extras:{type:f?'external':'local'}});
+ this.root.onclick=async e=>{const r=e.target.closest('[data-i]');if(!r)return;const a=l[r.dataset.i];if(a.type=='external'){const s=await sys.prompt(sys.res.string('pass')+' — '+a.name);if(s==null)return;if(!await svc.verify(a.id,s))return sys.toast(sys.res.string('bad'))}
+  this.done=true;sys.accounts._picked({...a,token:await svc.token(a.id)});this.finish()}}
+ onDestroy(){if(!this.done)sys.accounts._picked(null)}}`;
+/* syshealth (oculto, em segundo plano, priv-app) */
+B.push({id:'wd.syshealth',format:'apkx/3',name:'System Health',icon:'🩺',main:null,priv:true,permissions:['boot_complete','notifications','mem'],boot:'wd.syshealth.HealthService',
+ code:{wd:{syshealth:{HealthService:String.raw`class HealthService extends Service{onCreate(){this.w=0;this.tick();this.t=setInterval(()=>this.tick(),30000)}
+ tick(){try{const u=sys.storage.usage(),m=sys.mem.stats(),pc=Math.round(u.tot*100/u.Q);sys.fs.writeFile(sys.dataDir+'/health.json',JSON.stringify({t:Date.now(),storagePct:pc,memUsed:m.used,memRegions:m.regions}));
+  if(pc>=90&&!this.w){this.w=1;sys.notify({title:'Armazenamento quase cheio',text:pc+'% usado'})}if(pc<80)this.w=0}catch(e){}}
+ onDestroy(){clearInterval(this.t)}}`}}}});
+for(const id of['wd.config','wd.installer'])B.find(x=>x.id==id).priv=true;
+/* Config: ocultos, abrir app direto */
+const C14=B.find(x=>x.id=='wd.config');
+C14.code=C14.code.replace("async apps(){const l=this.sys.apps.list(),k=await this.sys.choose('Aplicativos',l.map(a=>a.icon+' '+a.name+' v'+a.version));if(k<0)return;const a=l[k];",
+ "async apps(){const sh=this.sys.settings.get('showHidden')===true,l=this.sys.apps.list().filter(a=>sh||a.main!==null),k=await this.sys.choose('Aplicativos',['👁 Mostrar apps ocultos: '+(sh?'sim':'não'),...l.map(a=>a.icon+' '+a.name+' v'+a.version+(a.main===null?' (oculto)':''))]);if(k<0)return;if(k==0){this.sys.settings.set('showHidden',!sh);return this.apps()}const a=l[k-1];")
+ .replace("onNewIntent(i){if((i.extras||{}).page=='storage')this.stor()}","onNewIntent(i){const x=i.extras||{};if(x.page=='storage')this.stor();if(x.page=='app'){const a=this.sys.apps.list().find(y=>y.id==x.id);if(a)this.appInfo(a)}}");
+B.find(x=>x.id=='wd.installer').code=B.find(x=>x.id=='wd.installer').code.replace('("#w").onclick=()=>{this.sys.fs.writeFile("/sdcard/ola.txt"','("#w").onclick=async()=>{if(!await this.sys.permissions.request("fs"))return;this.sys.fs.writeFile("/sdcard/ola.txt"');
+/* menu ao segurar + pastas */
+S.appMenu=async(m,dr)=>{if(m.folder)return S.openF(m.id.slice(7));const o=['Gerenciar',...(dr?[]:['Editar tela inicial']),'Desinstalar'],a=o[await S.choose(m.name,o)];
+ if(a=='Gerenciar'){$('#drawer').classList.remove('on');S.launch('wd.config',{package:'wd.config',component:'x',extras:{page:'app',id:m.id}})}else if(a=='Editar tela inicial')S.edit(true);else if(a=='Desinstalar')S.uninstall(m.id)};
+S.rmFromPages=id=>{S.cfg.pages.forEach(p=>{const i=p.indexOf(id);if(i>=0)p.splice(i,1)});S.cfg.pinned=S.cfg.pinned.filter(x=>x!=id)};
+S.syncF=()=>{const c=S.cfg,F=c.folders=c.folders||{};for(const id in F){F[id].a=F[id].a.filter(a=>S.reg[a]);const fid='folder:'+id,on=c.pages.some(p=>p.includes(fid))||c.pinned.includes(fid);
+  if(!on||!F[id].a.length){const last=c.pages[c.pages.length-1];F[id].a.forEach(a=>last.push(a));delete F[id];delete S.reg[fid];c.pages.forEach(p=>{const i=p.indexOf(fid);if(i>=0)p.splice(i,1)});continue}
+  S.reg[fid]={id:fid,name:F[id].n,icon:'🗂',version:'',main:'x',permissions:[],declared:[],folder:true}}
+ for(const k of Object.keys(S.reg))if(k.startsWith('folder:')&&!F[k.slice(7)])delete S.reg[k]};
+S.toFolder=async m=>{if(m.folder)return S.toast('Já é uma pasta');const c=S.cfg,F=c.folders=c.folders||{},ids=Object.keys(F),k=await S.choose('Mover '+m.name+' para…',['➕ Nova pasta',...ids.map(i=>'🗂 '+F[i].n)]);if(k<0)return;
+ if(k==0){const n=await S.prompt('Nome da pasta','Pasta');if(!n)return;const id='f'+Date.now(),fid='folder:'+id;let pl=false;c.pages.forEach(p=>{const i=p.indexOf(m.id);if(i>=0&&!pl){p[i]=fid;pl=true}else if(i>=0)p.splice(i,1)});if(!pl)c.pages[S.pg].push(fid);c.pinned=c.pinned.filter(x=>x!=m.id);F[id]={n,a:[m.id]};c.seen.push(fid)}
+ else{S.rmFromPages(m.id);F[ids[k-1]].a.push(m.id)}S.saveCfg();renderGrid()};
+S.openF=async id=>{const F=(S.cfg.folders||{})[id];if(!F)return;const k=await S.choose('🗂 '+F.n,['➕ Adicionar app',...F.a.map(a=>S.reg[a].icon+' '+S.reg[a].name),'✏️ Renomear','🗑 Excluir pasta']);if(k<0)return;
+ if(k==0){const out=Object.values(S.reg).filter(m=>!m.folder&&m.main!==null&&!Object.values(S.cfg.folders).some(f=>f.a.includes(m.id))),j=await S.choose('Adicionar',out.map(m=>m.icon+' '+m.name));if(j>=0){S.rmFromPages(out[j].id);F.a.push(out[j].id);S.saveCfg();renderGrid()}return S.openF(id)}
+ if(k==F.a.length+1){const n=await S.prompt('Nome da pasta',F.n);if(n){F.n=n;S.saveCfg();renderGrid()}return S.openF(id)}
+ if(k==F.a.length+2){const pg=S.cfg.pages[Math.min(S.pg,S.cfg.pages.length-1)];F.a.forEach(x=>pg.push(x));F.a=[];S.saveCfg();return renderGrid()}
+ const a=F.a[k-1],j=await S.choose(S.reg[a].name,['Abrir','Tirar da pasta']);if(j==0)S.launch(a);if(j==1){F.a.splice(k-1,1);S.cfg.pages[Math.min(S.pg,S.cfg.pages.length-1)].push(a);S.saveCfg();renderGrid()}if(j==1)S.openF(id)};
+const l14=S.launch;S.launch=(id,i)=>String(id).startsWith('folder:')?S.openF(id.slice(7)):l14(id,i);
+const rg2=window.renderGrid;window.renderGrid=function(){S.syncF();const mem=new Set();Object.values(S.cfg.folders||{}).forEach(f=>f.a.forEach(a=>mem.add(a)));const h=[...mem].map(a=>S.reg[a]).filter(Boolean);h.forEach(m=>delete S.reg[m.id]);try{rg2()}finally{h.forEach(m=>{S.reg[m.id]=m})}renderWidgets()};
+/* versões reais + priv-app */
+const VER={'wd.files':'4.3.0','wd.gallery':'2.1.0','wd.config':'5.2.0','wd.term':'3.3.0','wd.notes':'2.0.0','wd.browser':'3.1.0','wd.calendar':'1.0.1','wd.accounts':'2.1.0','wd.installer':'1.4.0','wd.tasks':'1.1.0','wd.timer':'1.0.0','wd.calc':'1.0.0','wd.clock':'1.1.0','wd.paint':'1.2.0','wd.cam':'1.3.0','wd.cube':'1.0.0','wd.syshealth':'1.0.0','com.demo.v2':'3.0.0'};
+B.forEach(m=>{if(VER[m.id])m.version=VER[m.id]});
+B.forEach(m=>{S.fs.rm('/data/app/'+m.id+'.apkx');S.fs.rm((m.priv?'/system/app/':'/system/priv-app/')+m.id+'.apkx');F((m.priv?'/system/priv-app/':'/system/app/')+m.id+'.apkx',JSON.stringify(S.parse(Object.assign({format:'apkx/1'},m))))});
+S.applyCfg();S.load();renderGrid();
+Object.values(S.reg).forEach(m=>{if(m.boot&&m.permissions.includes('boot_complete'))S.service({package:m.id,component:m.boot}).catch(e=>console.warn('boot',m.id,e.message))});
 </script></body></html>
