@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Meus Sites</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Segoe UI', Tahoma, sans-serif;
+      background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+      color: #fff;
+      padding: 20px;
+    }
+
+    h1 {
+      margin-bottom: 40px;
+      font-size: 2.2rem;
+      text-align: center;
+      text-shadow: 0 0 20px rgba(120, 80, 255, 0.6);
+    }
+
+    .botoes {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 20px;
+      width: 100%;
+      max-width: 800px;
+    }
+
+    .botao {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 22px 18px;
+      border-radius: 16px;
+      text-decoration: none;
+      color: #fff;
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(10px);
+      transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
+    }
+
+    .botao:hover {
+      transform: translateY(-6px);
+      background: rgba(255, 255, 255, 0.15);
+      box-shadow: 0 12px 30px rgba(120, 80, 255, 0.4);
+    }
+
+    .botao .titulo { font-size: 1.25rem; font-weight: 700; }
+    .botao .tipo { font-size: 0.85rem; opacity: 0.7; }
+
+    .botao.geopolitica { border-color: #ff6b6b; }
+    .botao.univd       { border-color: #4ecdc4; }
+    .botao.ilha        { border-color: #feca57; }
+    .botao.webdroid    { border-color: #a29bfe; }
+  </style>
+</head>
+<body>
+  <h1>🌐 Escolha um site</h1>
+
+  <div class="botoes">
+    <a class="botao geopolitica"
+       href="https://miguelgw718-cell.github.io/sites/geopolitica"
+       target="_blank" rel="noopener">
+      <span class="titulo">🌍 Geopolítica</span>
+      <span class="tipo">Jogo</span>
+    </a>
+
+    <a class="botao univd"
+       href="https://miguelgw718-cell.github.io/sites/univd"
+       target="_blank" rel="noopener">
+      <span class="titulo">🌌 Universo Digital</span>
+      <span class="tipo">Site</span>
+    </a>
+
+    <a class="botao ilha"
+       href="https://miguelgw718-cell.github.io/sites/ilha_soberena"
+       target="_blank" rel="noopener">
+      <span class="titulo">🏝️ Ilha Soberana</span>
+      <span class="tipo">Jogo</span>
+    </a>
+
+    <a class="botao webdroid"
+       href="https://miguelgw718-cell.github.io/sites/webdroid"
+       target="_blank" rel="noopener">
+      <span class="titulo">🤖 WebDroid</span>
+      <span class="tipo">Simulação</span>
+    </a>
+  </div>
+</body>
+</html>
